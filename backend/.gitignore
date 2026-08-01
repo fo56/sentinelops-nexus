@@ -22,6 +22,7 @@ build/
 *.sqlite
 *.sqlite3
 /db/
+vector_db/
 mongodb.log
 *.wt
 WiredTiger.lock
@@ -73,6 +74,13 @@ htmlcov/
 .tox/
 
 # Misc
-.turbo/
-.vercel/
+.turbo
+.vercel
 .pycache
+
+# Scratchpad / Utility Scripts
+pull_model.py
+reindex.py
+test_atlas.py
+test_search_after.py
+test_search_before.py

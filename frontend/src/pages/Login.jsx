@@ -413,7 +413,7 @@ export default function Login() {
                   </label>
                   <Input
                     type="text"
-                    placeholder="Enter admin username"
+                    placeholder="admin@sentinelops.com"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     required

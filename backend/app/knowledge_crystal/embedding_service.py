@@ -16,10 +16,10 @@ class EmbeddingService:
         Initialize embedding service
         
         Args:
-            model: Ollama embedding model to use (default: llama3.2:3b from settings)
+            model: Ollama embedding model to use (default: nomic-embed-text from settings)
         """
         self.base_url = settings.OLLAMA_BASE_URL
-        self.model = model or settings.OLLAMA_MODEL
+        self.model = model or getattr(settings, 'OLLAMA_EMBEDDING_MODEL', settings.OLLAMA_MODEL)
         
         # Test Ollama connection
         try:

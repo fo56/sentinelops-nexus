@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     # Ollama Settings
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_MODEL: str = "llama3.2:3b"  # or "llama3.2:1b", "llama3:8b"
+    OLLAMA_EMBEDDING_MODEL: str = "nomic-embed-text"
     
     # File Storage Settings
     UPLOAD_DIR: str = "./uploads"
@@ -31,6 +32,7 @@ class Settings(BaseSettings):
     TESSERACT_PATH: Optional[str] = None
     
     # CORS Settings
+    FRONTEND_URL: str = "http://localhost:3000"
     CORS_ORIGINS: list = ["http://localhost:3000", "http://localhost:3001"]
     
     # JWT Authentication Settings (Optional - for future auth module)
@@ -43,6 +45,7 @@ class Settings(BaseSettings):
     
     # Default Admin Credentials (for initial setup)
     DEFAULT_ADMIN_USERNAME: str = "red_ranger"
+    DEFAULT_ADMIN_EMAIL: str = "admin@sentinelops.com"
     DEFAULT_ADMIN_PASSWORD: str = "morphintime2024"
     DEFAULT_ADMIN_FULLNAME: str = "Red Ranger - Team Leader"
 

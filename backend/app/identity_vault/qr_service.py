@@ -110,7 +110,7 @@ class QRTokenService:
             raise
     
     @staticmethod
-    def create_qr_login_url(qr_token: str, base_url: str = "http://localhost:3000") -> str:
+    def create_qr_login_url(qr_token: str, base_url: str = settings.FRONTEND_URL) -> str:
         """
         Create a QR login URL
         

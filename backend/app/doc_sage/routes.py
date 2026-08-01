@@ -45,7 +45,7 @@ def _ensure_upload_dir():
 async def upload_document(
     file: UploadFile = File(...),
     mission_id: Optional[str] = Form(None),
-    uploaded_by: str = Form("admin@sentinelops.com"),
+    uploaded_by: str = Form(settings.DEFAULT_ADMIN_EMAIL),
     allowed_users: Optional[str] = Form(None)  # Comma-separated emails
 ):
     """

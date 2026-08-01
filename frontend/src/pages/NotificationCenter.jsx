@@ -10,6 +10,8 @@ const NotificationCenter = ({ userId, onClose }) => {
  const [loading, setLoading] = useState(true);
  const [error, setError] = useState('');
  const wsRef = useRef(null);
+ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+ const WS_BASE_URL = API_BASE_URL.replace(/^http/, 'ws');
  useEffect(() => {
  // Only fetch and connect if user is authenticated
  const token = localStorage.getItem('access_token');
@@ -34,7 +36,7 @@ const NotificationCenter = ({ userId, onClose }) => {
  setError('');
  try {
  const response = await fetch(
- 'http://localhost:8000/api/notifications',
+ `${API_BASE_URL}/api/notifications`,
  {
  headers: {
  'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
@@ -57,7 +59,7 @@ const NotificationCenter = ({ userId, onClose }) => {
  console.error('No access token found');
  return;
  }
- const wsUrl = `ws://localhost:8000/ws/notifications?token=${token}`;
+ const wsUrl = `${WS_BASE_URL}/ws/notifications?token=${token}`;
  try {
  wsRef.current = new WebSocket(wsUrl);
  wsRef.current.onopen = () => {
@@ -86,7 +88,7 @@ const NotificationCenter = ({ userId, onClose }) => {
  const handleMarkAsRead = async (notificationId) => {
  try {
  const response = await fetch(
- `http://localhost:8000/api/notifications/${notificationId}/read`,
+ `${API_BASE_URL}/api/notifications/${notificationId}/read`,
  {
  method: 'PUT',
  headers: {
@@ -110,7 +112,7 @@ const NotificationCenter = ({ userId, onClose }) => {
  const handleDelete = async (notificationId) => {
  try {
  const response = await fetch(
- `http://localhost:8000/api/notifications/${notificationId}`,
+ `${API_BASE_URL}/api/notifications/${notificationId}`,
  {
  method: 'DELETE',
  headers: {
@@ -129,7 +131,7 @@ const NotificationCenter = ({ userId, onClose }) => {
  const handleClearAll = async () => {
  try {
  const response = await fetch(
- 'http://localhost:8000/api/notifications',
+ `${API_BASE_URL}/api/notifications`,
  {
  method: 'DELETE',
  headers: {
@@ -147,7 +149,7 @@ const NotificationCenter = ({ userId, onClose }) => {
  const handleMarkAllAsRead = async () => {
  try {
  const response = await fetch(
- 'http://localhost:8000/api/notifications/mark-all-read',
+ `${API_BASE_URL}/api/notifications/mark-all-read`,
  {
  method: 'PUT',
  headers: {

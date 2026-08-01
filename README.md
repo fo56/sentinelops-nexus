@@ -1,4 +1,4 @@
-# 🎯 SentinelOps Nexus - Intelligence Operations Management Platform
+# 🎯 Command Nest - Intelligence Operations Management Platform
 
 <div align="center">
 
@@ -16,7 +16,7 @@
 
 ## 📖 Project Overview
 
-**SentinelOps Nexus** is an enterprise-grade intelligence operations management system designed to streamline mission planning, document intelligence, knowledge management, and facility operations. Built with security and scalability in mind, it combines modern AI capabilities with robust access control and real-time collaboration features.
+**Command Nest** is an enterprise-grade intelligence operations management system designed to streamline mission planning, document intelligence, knowledge management, and facility operations. Built with security and scalability in mind, it combines modern AI capabilities with robust access control and real-time collaboration features.
 
 The platform serves as a centralized hub for intelligence teams, enabling:
 - 🤖 **AI-powered document analysis** and intelligent search
@@ -787,29 +787,6 @@ QR_TOKEN_LENGTH=32
 SECRET_KEY=generate-strong-key-here
 ```
 
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 👥 Authors
-
-- **Development Team** - Initial work - [GitHub Profile](https://github.com/Abhay030405)
 
 ---
 
@@ -822,14 +799,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Ollama for local LLM support
 - React team for the frontend framework
 
---
----
 
----
-
-<div align="center">
-
-**Built with ❤️ for Intelligence Operations**
 
 [⬆ Back to Top](#-sentinelops-nexus---intelligence-operations-management-platform)
 

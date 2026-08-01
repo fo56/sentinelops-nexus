@@ -39,8 +39,8 @@ async def create_initial_admin():
         admin_user = await UserService.create_user(
             db=db,
             full_name=settings.DEFAULT_ADMIN_FULLNAME,
-            email="admin@sentinelops.com",
-            password="AdminPassword123!",  # Change this in production!
+            email=settings.DEFAULT_ADMIN_EMAIL,
+            password=settings.DEFAULT_ADMIN_PASSWORD,
             age=35,
             marital_status="married",
             criminal_record=False,
@@ -54,8 +54,8 @@ async def create_initial_admin():
         logger.info(f"   Full Name: {admin_user['full_name']}")
         logger.info(f"   Role: {admin_user['role']}")
         logger.info("\n⚠️  IMPORTANT: Change the default password immediately!")
-        logger.info("   Email: admin@sentinelops.com")
-        logger.info("   Password: AdminPassword123!")
+        logger.info(f"   Email: {settings.DEFAULT_ADMIN_EMAIL}")
+        logger.info(f"   Password: {settings.DEFAULT_ADMIN_PASSWORD}")
         
     except Exception as e:
         logger.error(f"❌ Error creating admin: {e}")
