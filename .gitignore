@@ -157,4 +157,4 @@ ehthumbs.db
 # Production
 .next
 out/
-Knowledge.txt
+test_documents/

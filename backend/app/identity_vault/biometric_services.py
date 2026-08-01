@@ -7,7 +7,7 @@ import secrets
 from datetime import datetime, timedelta
 from typing import Tuple, Optional, List
 from motor.motor_asyncio import AsyncIOMotorClient
-from app.biometric_auth.models import BiometricType, BiometricStatus, BiometricAuditLog
+from .biometric_models import BiometricType, BiometricStatus, BiometricAuditLog
 
 
 class BiometricService:

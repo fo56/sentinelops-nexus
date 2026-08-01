@@ -27,10 +27,7 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = "./uploads"
     MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10MB
     ALLOWED_EXTENSIONS: list = [".pdf", ".jpg", ".jpeg", ".png", ".txt"]
-    
-    # Tesseract OCR Settings
-    TESSERACT_PATH: Optional[str] = None
-    
+        
     # CORS Settings
     FRONTEND_URL: str = "http://localhost:3000"
     CORS_ORIGINS: list = ["http://localhost:3000", "http://localhost:3001"]
@@ -46,44 +43,7 @@ class Settings(BaseSettings):
     # Default Admin Credentials (for initial setup)
     DEFAULT_ADMIN_USERNAME: str = "red_ranger"
     DEFAULT_ADMIN_EMAIL: str = "admin@sentinelops.com"
-    DEFAULT_ADMIN_PASSWORD: str = "morphintime2024"
+    DEFAULT_ADMIN_PASSWORD: str = "AdminPassword123!"
     DEFAULT_ADMIN_FULLNAME: str = "Red Ranger - Team Leader"
 
 settings = Settings()
-
-# Configure Tesseract OCR path
-def setup_tesseract():
-    """Setup Tesseract OCR path for pytesseract"""
-    import pytesseract
-    
-    # Direct path configuration
-    pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-    
-    # Common Windows installation paths
-    windows_paths = [
-        r"C:\Program Files\Tesseract-OCR\tesseract.exe",
-        r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
-    ]
-    
-    # Check if custom path is set in .env
-    if settings.TESSERACT_PATH:
-        if os.path.exists(settings.TESSERACT_PATH):
-            pytesseract.pytesseract.tesseract_cmd = settings.TESSERACT_PATH
-            print(f"[OK] Tesseract configured at: {settings.TESSERACT_PATH}")
-        else:
-            print(f"[WARN] Tesseract path not found: {settings.TESSERACT_PATH}")
-    # Windows - try common installation paths
-    elif os.name == 'nt':
-        for path in windows_paths:
-            if os.path.exists(path):
-                pytesseract.pytesseract.tesseract_cmd = path
-                print(f"[OK] Tesseract found at: {path}")
-                return
-        print("[WARN] Tesseract not found in common Windows paths")
-        print("   Install from: https://github.com/UB-Mannheim/tesseract/wiki")
-    else:
-        # macOS/Linux - tesseract should be in PATH
-        print("[OK] Tesseract OCR should be available in PATH (macOS/Linux)")
-
-# Call setup on import
-setup_tesseract()

@@ -5,7 +5,6 @@ import {
   Zap,
   Wrench,
   LayoutDashboard,
-  FileText,
   BookOpen,
 } from 'lucide-react';
 
@@ -34,11 +33,6 @@ const adminModules = [
     title: 'Facility Ops',
     icon: Wrench,
     path: '/admin/facility-ops',
-  },
-  {
-    title: 'DocSage',
-    icon: FileText,
-    path: '/doc-sage',
   },
   {
     title: 'Knowledge',

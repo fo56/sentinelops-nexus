@@ -110,7 +110,7 @@ async def get_current_admin(
     return current_user
 
 
-async def require_role(required_role: str):
+def require_role(required_role: str):
     """
     Factory function to create role-checking dependency
     

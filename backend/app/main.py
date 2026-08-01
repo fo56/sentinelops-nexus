@@ -2,14 +2,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config.settings import settings
 from app.database.mongodb import connect_to_mongo, close_mongo_connection
-from app.doc_sage.routes import router as doc_sage_router
 from app.knowledge_crystal.routes import router as kb_router
 from app.knowledge_crystal.embedding_service import init_embedding_service
 from app.knowledge_crystal.vector_store import init_vector_store
 from app.identity_vault.auth_routes import router as auth_router
 from app.identity_vault.admin_routes import router as admin_router
-from app.mfa_system.routes import router as mfa_router
-from app.biometric_auth.routes import router as biometric_router
+from app.identity_vault.mfa_routes import router as mfa_router
+from app.identity_vault.biometric_routes import router as biometric_router
 from app.analytics.routes import router as analytics_router
 from app.notifications.routes import router as notifications_router
 from app.ops_planner.routes import router as ops_planner_router
@@ -58,7 +57,6 @@ async def shutdown_event():
 # Include routers
 app.include_router(auth_router)
 app.include_router(admin_router)
-app.include_router(doc_sage_router)
 app.include_router(kb_router)
 
 # Phase 3 Routers

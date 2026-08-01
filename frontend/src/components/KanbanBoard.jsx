@@ -38,26 +38,7 @@ export default function KanbanBoard({
   };
 
   const CardItem = ({ item, column }) => (
-    <div
-      style={{
-        backgroundColor: '#202835',
-        border: '1px solid #2a3040',
-        borderRadius: '0.5rem',
-        padding: '1rem',
-        marginBottom: '0.75rem',
-        position: 'relative',
-        transition: 'all 0.2s',
-        cursor: 'pointer',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = '#29a399';
-        e.currentTarget.style.boxShadow = '0 0 15px rgba(41, 163, 153, 0.2)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = '#2a3040';
-        e.currentTarget.style.boxShadow = 'none';
-      }}
-    >
+    <div className="kanban-card">
       {/* Top Right Buttons */}
       <div style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', display: 'flex', gap: '0.5rem' }}>
         {type === 'missions' && column === 'open' && (
@@ -68,14 +49,12 @@ export default function KanbanBoard({
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              color: '#29a399',
+              color: 'var(--primary)',
               padding: '0.25rem',
               display: 'flex',
               alignItems: 'center',
               transition: 'color 0.2s',
             }}
-            onMouseEnter={(e) => e.currentTarget.style.color = '#3ab8a8'}
-            onMouseLeave={(e) => e.currentTarget.style.color = '#29a399'}
           >
             <FileUp size={16} />
           </button>
@@ -88,14 +67,12 @@ export default function KanbanBoard({
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              color: '#29a399',
+              color: 'var(--primary)',
               padding: '0.25rem',
               display: 'flex',
               alignItems: 'center',
               transition: 'color 0.2s',
             }}
-            onMouseEnter={(e) => e.currentTarget.style.color = '#3ab8a8'}
-            onMouseLeave={(e) => e.currentTarget.style.color = '#29a399'}
           >
             <FileUp size={16} />
           </button>
@@ -104,40 +81,22 @@ export default function KanbanBoard({
 
       {/* Card Content */}
       <div style={{ marginRight: '2rem' }}>
-        <h4 style={{
-          margin: '0 0 0.5rem 0',
-          fontSize: '0.95rem',
-          fontWeight: '600',
-          color: '#ffffff',
-          fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif",
-        }}>
+        <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.95rem', fontWeight: '600', color: '#ffffff' }}>
           {item.title || item.name}
         </h4>
 
         {/* Status Badge */}
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
-          <span style={{
-            fontSize: '0.65rem',
+          <span className="badge" style={{
             backgroundColor: `${getStatusColor(item.status)}33`,
-            color: getStatusColor(item.status),
-            padding: '0.2rem 0.5rem',
-            borderRadius: '0.25rem',
-            fontWeight: '600',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em'
+            color: getStatusColor(item.status)
           }}>
             {item.status}
           </span>
           {item.priority && (
-            <span style={{
-              fontSize: '0.65rem',
+            <span className="badge" style={{
               backgroundColor: `${getPriorityColor(item.priority)}33`,
-              color: getPriorityColor(item.priority),
-              padding: '0.2rem 0.5rem',
-              borderRadius: '0.25rem',
-              fontWeight: '600',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em'
+              color: getPriorityColor(item.priority)
             }}>
               {item.priority} priority
             </span>
@@ -157,12 +116,12 @@ export default function KanbanBoard({
             )}
           </div>
         ) : (
-          <p style={{ margin: '0.25rem 0 0.75rem 0', fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif" }}>
+          <p style={{ margin: '0.25rem 0 0.75rem 0', fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {item.description || item.details || 'No description'}
           </p>
         )}
 
-        <div style={{ cursor: 'pointer', fontSize: '0.75rem', color: '#29a399', marginBottom: '0.75rem' }} onClick={() => setExpandedCard(expandedCard === item.id ? null : item.id)}>
+        <div style={{ cursor: 'pointer', fontSize: '0.75rem', color: 'var(--primary)', marginBottom: '0.75rem' }} onClick={() => setExpandedCard(expandedCard === item.id ? null : item.id)}>
           {expandedCard === item.id ? 'Show less' : 'Show more'}
         </div>
       </div>
@@ -188,16 +147,7 @@ export default function KanbanBoard({
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '0.25rem',
-                transition: 'all 0.2s',
-                fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255, 107, 107, 0.25)';
-                e.currentTarget.style.borderColor = 'rgba(255, 107, 107, 0.5)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255, 107, 107, 0.15)';
-                e.currentTarget.style.borderColor = 'rgba(255, 107, 107, 0.3)';
+                transition: 'all 0.2s'
               }}
             >
               <Trash2 size={14} />
@@ -212,7 +162,7 @@ export default function KanbanBoard({
                   padding: '0.5rem',
                   backgroundColor: 'rgba(41, 163, 153, 0.15)',
                   border: '1px solid rgba(41, 163, 153, 0.3)',
-                  color: '#29a399',
+                  color: 'var(--primary)',
                   borderRadius: '0.375rem',
                   cursor: 'pointer',
                   fontSize: '0.75rem',
@@ -221,16 +171,7 @@ export default function KanbanBoard({
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '0.25rem',
-                  transition: 'all 0.2s',
-                  fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(41, 163, 153, 0.25)';
-                  e.currentTarget.style.borderColor = 'rgba(41, 163, 153, 0.5)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(41, 163, 153, 0.15)';
-                  e.currentTarget.style.borderColor = 'rgba(41, 163, 153, 0.3)';
+                  transition: 'all 0.2s'
                 }}
               >
                 <UserPlus size={14} />
@@ -246,13 +187,13 @@ export default function KanbanBoard({
                   left: '0',
                   right: '0',
                   marginTop: '0.25rem',
-                  backgroundColor: '#0c0e12',
-                  border: '1px solid #2a3040',
+                  backgroundColor: 'var(--bg-primary)',
+                  border: '1px solid var(--border-color)',
                   borderRadius: '0.375rem',
                   maxHeight: '200px',
                   overflowY: 'auto',
                   zIndex: '10',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)'
                 }}>
                   {availableAgents.map(agent => (
                     <button
@@ -271,14 +212,7 @@ export default function KanbanBoard({
                         cursor: 'pointer',
                         fontSize: '0.8rem',
                         transition: 'background-color 0.2s',
-                        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif",
-                        borderBottom: '1px solid #2a3040',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = 'rgba(41, 163, 153, 0.15)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'transparent';
+                        borderBottom: '1px solid var(--border-color)',
                       }}
                     >
                       {agent.name}
@@ -301,12 +235,11 @@ export default function KanbanBoard({
             padding: '0.5rem',
             backgroundColor: 'rgba(41, 163, 153, 0.15)',
             border: '1px solid rgba(41, 163, 153, 0.3)',
-            color: '#29a399',
+            color: 'var(--primary)',
             borderRadius: '0.375rem',
             fontSize: '0.75rem',
             fontWeight: '500',
-            textAlign: 'center',
-            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif",
+            textAlign: 'center'
           }}>
             Assigned to: {item.assignedTo || 'Unassigned'}
           </div>
@@ -316,21 +249,21 @@ export default function KanbanBoard({
   );
 
   return (
-    <div style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif" }}>
+    <div>
       {/* Header with Tabs and Create Button */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', gap: '1rem', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid #2a3040', paddingBottom: '1rem', flex: 1 }}>
+      <div className="flex-between" style={{ marginBottom: '1.5rem', gap: '1rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', flex: 1 }}>
           <button
             style={{
               padding: '0.75rem 1rem',
               backgroundColor: 'transparent',
               border: 'none',
-              borderBottom: '2px solid #29a399',
+              borderBottom: '2px solid var(--primary)',
               color: '#ffffff',
               cursor: 'pointer',
               fontSize: '0.875rem',
               fontWeight: '600',
-              transition: 'all 0.2s',
+              transition: 'all 0.2s'
             }}
           >
             OPEN ({openItems.length})
@@ -345,7 +278,7 @@ export default function KanbanBoard({
               cursor: 'pointer',
               fontSize: '0.875rem',
               fontWeight: '600',
-              transition: 'all 0.2s',
+              transition: 'all 0.2s'
             }}
           >
             IN PROGRESS ({inProgressItems.length})
@@ -358,21 +291,13 @@ export default function KanbanBoard({
             style={{
               padding: '0.5rem 1rem',
               backgroundColor: 'transparent',
-              border: '1px solid #2a3040',
+              border: '1px solid var(--border-color)',
               color: '#ffffff',
               borderRadius: '0.375rem',
               cursor: 'pointer',
               fontSize: '0.8rem',
               fontWeight: '500',
-              transition: 'all 0.2s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = '#29a399';
-              e.currentTarget.style.color = '#29a399';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = '#2a3040';
-              e.currentTarget.style.color = '#ffffff';
+              transition: 'all 0.2s'
             }}
           >
             COMPLETED ({completedItems.length})
@@ -381,17 +306,15 @@ export default function KanbanBoard({
             onClick={onCreateNew}
             style={{
               padding: '0.5rem 1rem',
-              backgroundColor: '#29a399',
+              backgroundColor: 'var(--primary)',
               border: 'none',
               color: '#ffffff',
               borderRadius: '0.375rem',
               cursor: 'pointer',
               fontSize: '0.8rem',
               fontWeight: '600',
-              transition: 'all 0.2s',
+              transition: 'all 0.2s'
             }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#3ab8a8'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#29a399'}
           >
             + CREATE {type === 'missions' ? 'MISSION' : 'ISSUE'}
           </button>
@@ -401,7 +324,7 @@ export default function KanbanBoard({
       {/* Kanban Columns */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
         {/* Open Column */}
-        <div>
+        <div className="kanban-column">
           <h3 style={{ fontSize: '1rem', fontWeight: '600', color: '#e59019', marginBottom: '1rem', marginTop: '0' }}>
             OPEN
           </h3>
@@ -419,7 +342,7 @@ export default function KanbanBoard({
         </div>
 
         {/* In Progress Column */}
-        <div>
+        <div className="kanban-column">
           <h3 style={{ fontSize: '1rem', fontWeight: '600', color: '#ffc107', marginBottom: '1rem', marginTop: '0' }}>
             IN PROGRESS
           </h3>

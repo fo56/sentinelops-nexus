@@ -318,8 +318,13 @@ class KBSearchService:
             if query.country and metadata.get("country") != query.country:
                 continue
             
-            # Get page details
-            page = await self.page_collection.find_one({"_id": ObjectId(page_id)})
+            # Get page details - gracefully handle invalid or stale ObjectIds from ChromaDB
+            try:
+                page_oid = ObjectId(page_id)
+            except Exception:
+                continue
+                
+            page = await self.page_collection.find_one({"_id": page_oid})
             if not page:
                 continue
             
@@ -382,10 +387,10 @@ Provide a detailed summary that captures the main topics, key information, and i
                     "stream": False,
                     "options": {
                         "num_predict": 250,
-                        "temperature": 0.7
+                        "temperature": 0.1
                     }
                 },
-                timeout=30
+                timeout=120
             )
             
             if response.status_code == 200:
@@ -424,10 +429,10 @@ Return the points as a JSON array of strings. Each point should be a concise sta
                     "stream": False,
                     "options": {
                         "num_predict": 300,
-                        "temperature": 0.7
+                        "temperature": 0.1
                     }
                 },
-                timeout=30
+                timeout=120
             )
             
             if response.status_code == 200:
@@ -517,10 +522,10 @@ Please provide a clear, concise answer citing the relevant sources."""
                     "stream": False,
                     "options": {
                         "num_predict": 500,
-                        "temperature": 0.7
+                        "temperature": 0.1
                     }
                 },
-                timeout=60
+                timeout=120
             )
             
             if response.status_code == 200:
@@ -642,10 +647,10 @@ If the query cannot be fully answered with the available information, explain wh
                     "stream": False,
                     "options": {
                         "num_predict": 600,
-                        "temperature": 0.7
+                        "temperature": 0.1
                     }
                 },
-                timeout=60
+                timeout=120
             )
             
             if response.status_code == 200:

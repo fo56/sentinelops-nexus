@@ -25,97 +25,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
-@router.get("/ranger-stats")
-async def get_ranger_stats(
-    current_user: dict = Depends(get_current_user),
-    db = Depends(get_database)
-):
-    """
-    Get real-time ranger dashboard statistics
-    
-    Returns:
-        - completed_issues: Count of completed issues/missions
-        - current_issue: Current active issue/mission title or None
-        - performance_score: Ranger's performance score
-        - age: Ranger's age
-        - marital_status: Ranger's marital status
-        - completed_missions: Count of completed missions
-        - in_progress_missions: Count of in-progress missions
-    """
-    try:
-        users_collection = db["users"]
-        missions_collection = db["missions"]
-        issues_collection = db["issues"]
-        
-        user_id = str(current_user["_id"])
-        
-        # Get user data for age, marital status, and score
-        user_data = await users_collection.find_one({"_id": current_user["_id"]})
-        
-        # If user doesn't have score field, initialize it to 100
-        if "score" not in user_data:
-            await users_collection.update_one(
-                {"_id": current_user["_id"]},
-                {"$set": {"score": 100}}
-            )
-            user_data["score"] = 100
-            logger.info(f"Initialized score for user {user_id}")
-        
-        # Count completed missions
-        completed_missions = await missions_collection.count_documents({
-            "assigned_agent_id": user_id,
-            "status": "completed"
-        })
-        
-        # Count completed issues (facility_ops uses "assigned_to" field)
-        completed_issues = await issues_collection.count_documents({
-            "assigned_to": user_id,
-            "status": "resolved"
-        })
-        
-        # Get current active issue/mission
-        current_mission = await missions_collection.find_one({
-            "assigned_agent_id": user_id,
-            "status": "in_progress"
-        })
-        
-        current_issue = await issues_collection.find_one({
-            "assigned_to": user_id,
-            "status": {"$in": ["assigned", "in_progress"]}
-        })
-        
-        # Count in-progress missions
-        in_progress_missions = await missions_collection.count_documents({
-            "assigned_agent_id": user_id,
-            "status": "in_progress"
-        })
-        
-        # Determine current task
-        current_task = None
-        if current_mission:
-            current_task = current_mission.get("title", "Active Mission")
-        elif current_issue:
-            current_task = current_issue.get("title", "Active Issue")
-        
-        logger.info(f"Ranger stats for {user_id}: completed_missions={completed_missions}, completed_issues={completed_issues}, score={user_data.get('score', 100)}")
-        
-        return {
-            "completed_issues": completed_issues + completed_missions,
-            "current_issue": current_task,
-            "performance_score": user_data.get("score", 100),
-            "age": user_data.get("age", 0),
-            "marital_status": user_data.get("marital_status", "single"),
-            "completed_missions": completed_missions,
-            "in_progress_missions": in_progress_missions
-        }
-    
-    except Exception as e:
-        logger.error(f"Error fetching ranger stats: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error fetching ranger statistics"
-        )
-
 
 def get_client_ip(request: Request) -> str:
     """
@@ -150,6 +59,8 @@ async def login(
         JWT token and user information
     """
     try:
+
+        
         # Authenticate user
         user = await UserService.authenticate_user(db, request.email, request.password)
         

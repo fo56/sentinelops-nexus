@@ -6,10 +6,11 @@ import Login from '../pages/Login';
 import AgentDashboard from '../pages/AgentDashboard';
 import TechnicianDashboard from '../pages/TechnicianDashboard';
 import AdminDashboard from '../pages/AdminDashboard';
+import Users from '../pages/Users';
+import CreateRanger from '../pages/CreateRanger';
 
 // Phase 1 Pages
 import KnowledgeCrystal from '../pages/KnowledgeCrystal';
-import DocSage from '../pages/DocSage';
 
 // Phase 3 & 4 Pages
 import NotificationCenter from '../pages/NotificationCenter';
@@ -43,7 +44,7 @@ export const routes = [
     path: '/admin/users',
     element: (
       <ProtectedRoute requiredRole="admin">
-        <AdminDashboard />
+        <Users />
       </ProtectedRoute>
     ),
   },
@@ -51,7 +52,7 @@ export const routes = [
     path: '/admin/create-ranger',
     element: (
       <ProtectedRoute requiredRole="admin">
-        <AdminDashboard />
+        <CreateRanger />
       </ProtectedRoute>
     ),
   },
@@ -59,7 +60,7 @@ export const routes = [
     path: '/admin/ops-planner',
     element: (
       <ProtectedRoute requiredRole="admin">
-        <AdminDashboard />
+        <OpsPlanner />
       </ProtectedRoute>
     ),
   },
@@ -67,7 +68,7 @@ export const routes = [
     path: '/admin/facility-ops',
     element: (
       <ProtectedRoute requiredRole="admin">
-        <AdminDashboard />
+        <FacilityOps />
       </ProtectedRoute>
     ),
   },
@@ -115,7 +116,6 @@ export const routes = [
   { path: '/ops-planner', element: <ProtectedRoute><OpsPlanner /></ProtectedRoute> },
   { path: '/ranger/ops-planner', element: <ProtectedRoute><OpsPlanner /></ProtectedRoute> },
   { path: '/ranger/facility-ops', element: <ProtectedRoute><FacilityOps /></ProtectedRoute> },
-  { path: '/doc-sage', element: <ProtectedRoute><DocSage /></ProtectedRoute> },
 
   // Notifications
   { path: '/notifications', element: <ProtectedRoute><NotificationCenter /></ProtectedRoute> },

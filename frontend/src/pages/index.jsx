@@ -1,8 +1,8 @@
 import React from 'react';
-import DocSage from '../../components/DocSage';
+import KnowledgeCrystal from './KnowledgeCrystal';
 
 const DocumentsPage = () => {
-  return <DocSage />;
+  return <KnowledgeCrystal />;
 };
 
 export default DocumentsPage;

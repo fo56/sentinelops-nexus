@@ -203,37 +203,6 @@ export const adminService = {
   },
 };
 
-// Doc-Sage Services (Phase 1)
-export const docSageService = {
-  // Upload Document
-  async uploadDocument(file, metadata = {}) {
-    const formData = new FormData();
-    formData.append('file', file);
-    Object.keys(metadata).forEach(key => {
-      formData.append(key, metadata[key]);
-    });
-
-    return apiClient.request('POST', '/doc-sage/upload', null, {
-      headers: {}, // Remove Content-Type to let browser set it
-      body: formData,
-    });
-  },
-
-  // Extract Text from Document
-  async extractText(documentId) {
-    return apiClient.post(`/doc-sage/extract/${documentId}`);
-  },
-
-  // Get Document List
-  async getDocuments() {
-    return apiClient.get('/doc-sage/documents');
-  },
-
-  // Delete Document
-  async deleteDocument(documentId) {
-    return apiClient.delete(`/doc-sage/documents/${documentId}`);
-  },
-};
 
 // Knowledge Crystal Services (Phase 1)
 export const knowledgeService = {

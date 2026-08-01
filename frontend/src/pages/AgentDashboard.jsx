@@ -17,7 +17,7 @@ export default function AgentDashboard() {
       setError(null);
 
       // Fetch real-time ranger stats from backend
-      const stats = await apiClient.get('/auth/ranger-stats');
+      const stats = await apiClient.get('/api/analytics/ranger-stats');
 
       setAgentData({
         id: user?.id || '',

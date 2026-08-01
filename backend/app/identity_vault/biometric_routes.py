@@ -4,12 +4,12 @@ Phase 3 API Endpoints
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status, Header
-from app.biometric_auth.models import (
+from .biometric_models import (
     BiometricEnrollmentRequest, BiometricEnrollmentResponse,
     BiometricVerificationRequest, BiometricVerificationResponse,
     BiometricStatus, BiometricType
 )
-from app.biometric_auth.services import BiometricService
+from .biometric_services import BiometricService
 from app.utils.auth import verify_token
 from app.database.mongodb import get_database
 from typing import Optional

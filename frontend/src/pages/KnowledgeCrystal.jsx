@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import DashboardLayout from '../components/DashboardLayout';
 import AdminNavigation from '../components/AdminNavigation';
+import AgentNavigation from '../components/AgentNavigation';
+import TechnicianNavigation from '../components/TechnicianNavigation';
 import knowledgeCrystalService from '../services/knowledgeCrystalService';
 import { Card } from '../components/ui/Card';
 import UploadDocumentModal from '../components/UploadDocumentModal';
@@ -114,30 +116,30 @@ export default function KnowledgeCrystal() {
     fetchDocuments();
   };
 
-  return (
-    <DashboardLayout>
-      {isAdmin && <AdminNavigation />}
-      
-      <div className="knowledge-crystal-container" style={styles.container}>
-        {/* Header */}
-        <div style={styles.header}>
-          <div>
-            <h1 style={styles.title}>KNOWLEDGE CRYSTAL</h1>
-            <p style={styles.subtitle}>
-              {isAdmin ? 'Manage and organize mission documents' : 'Access mission documents and technical resources'}
-            </p>
-          </div>
-          
-          {isAdmin && (
-            <button 
-              onClick={() => setIsUploadModalOpen(true)}
-              style={styles.uploadButton}
-            >
-              <span style={styles.uploadIcon}>+</span> Upload Document
-            </button>
-          )}
-        </div>
+  const getNavigation = () => {
+    if (user?.role === 'admin') return <AdminNavigation />;
+    if (user?.role === 'agent') return <AgentNavigation />;
+    if (user?.role === 'technician') return <TechnicianNavigation />;
+    return null;
+  };
 
+  const headerActions = isAdmin ? (
+    <button 
+      onClick={() => setIsUploadModalOpen(true)}
+      style={styles.uploadButton}
+    >
+      <span style={styles.uploadIcon}>+</span> Upload Document
+    </button>
+  ) : null;
+
+  return (
+    <DashboardLayout
+      title="KNOWLEDGE CRYSTAL"
+      subtitle={isAdmin ? 'Manage and organize mission documents' : 'Access mission documents and technical resources'}
+      navigation={getNavigation()}
+      headerActions={headerActions}
+    >
+      <div className="knowledge-crystal-container" style={styles.container}>
         {/* Search and Filter Section */}
         <div style={styles.searchSection}>
           <div style={styles.searchBar}>
@@ -377,7 +379,7 @@ const styles = {
   },
   documentsGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
+    gridTemplateColumns: 'repeat(3, 1fr)',
     gap: '20px',
     marginBottom: '80px',
   },

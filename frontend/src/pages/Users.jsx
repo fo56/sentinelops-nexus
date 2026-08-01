@@ -1,5 +1,7 @@
 import { Search, Lock, Trash2 } from 'lucide-react';
 import { Card, CardContent } from '../components/ui/Card';
+import DashboardLayout from '../components/DashboardLayout';
+import AdminNavigation from '../components/AdminNavigation';
 import { useState, useEffect } from 'react';
 import apiClient from '../services/api';
 
@@ -77,6 +79,7 @@ export default function AdminUsers() {
   };
 
   return (
+    <DashboardLayout title="USER MANAGEMENT" subtitle="Manage system users and their permissions" navigation={<AdminNavigation />}>
     <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 1rem', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif" }}>
       {/* Loading State */}
       {loading && (
@@ -330,5 +333,6 @@ export default function AdminUsers() {
         </>
       )}
     </div>
+    </DashboardLayout>
   );
 }

@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { adminService } from '../services/api';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import DashboardLayout from '../components/DashboardLayout';
+import AdminNavigation from '../components/AdminNavigation';
 
 export default function CreateRanger({ onUserCreated }) {
   const [createForm, setCreateForm] = useState({
@@ -117,6 +119,7 @@ export default function CreateRanger({ onUserCreated }) {
   };
 
   return (
+    <DashboardLayout title="CREATE RANGER" subtitle="Onboard a new ranger operative" navigation={<AdminNavigation />}>
     <div style={{ maxWidth: '600px', margin: '0 auto', padding: '0 1rem' }}>
       {createdUser && showQR && (
         <div style={{
@@ -538,5 +541,6 @@ export default function CreateRanger({ onUserCreated }) {
         </form>
       </Card>
     </div>
+    </DashboardLayout>
   );
 }

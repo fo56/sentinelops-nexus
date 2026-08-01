@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   Zap,
   Wrench,
-  FileText,
   BookOpen,
 } from 'lucide-react';
 
@@ -22,11 +21,6 @@ const agentModules = [
     title: 'Facility Ops',
     icon: Wrench,
     path: '/ranger/facility-ops',
-  },
-  {
-    title: 'DocSage',
-    icon: FileText,
-    path: '/doc-sage',
   },
   {
     title: 'Knowledge',

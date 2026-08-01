@@ -10,7 +10,7 @@ import base64
 from datetime import datetime, timedelta
 from typing import List, Optional, Tuple
 from motor.motor_asyncio import AsyncIOMotorClient
-from app.mfa_system.models import MFAMethod, MFAConfig, MFAStatus
+from .mfa_models import MFAMethod, MFAConfig, MFAStatus
 
 
 class MFAService:
@@ -40,7 +40,7 @@ class MFAService:
         
         img = qr.make_image(fill_color="black", back_color="white")
         buffer = io.BytesIO()
-        img.save(buffer, format="PNG")
+        img.save(buffer)
         qr_base64 = base64.b64encode(buffer.getvalue()).decode()
         
         # Generate backup codes

@@ -18,9 +18,9 @@ from .models import (
 
 logger = logging.getLogger(__name__)
 
-# Password hashing using Argon2 (more secure, no length limits)
+# Password hashing using bcrypt
 pwd_context = CryptContext(
-    schemes=["argon2"],
+    schemes=["bcrypt"],
     deprecated="auto"
 )
 

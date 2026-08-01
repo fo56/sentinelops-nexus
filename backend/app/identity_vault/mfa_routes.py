@@ -4,11 +4,11 @@ Phase 3 API Endpoints
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from app.mfa_system.models import (
+from .mfa_models import (
     MFASetupRequest, MFASetupResponse, MFAVerification, 
     MFAVerificationResponse, MFAStatus, MFAMethod, BackupCodeResponse
 )
-from app.mfa_system.services import MFAService
+from .mfa_services import MFAService
 from app.utils.auth import verify_token
 from app.database.mongodb import get_database
 from typing import Optional

@@ -1,90 +1,72 @@
 import React, { useState, useEffect, useRef } from 'react';
+import DashboardLayout from '../components/DashboardLayout';
+import AdminNavigation from '../components/AdminNavigation';
+import AgentNavigation from '../components/AgentNavigation';
+import TechnicianNavigation from '../components/TechnicianNavigation';
+import { useAuth } from '../hooks/useAuth';
+import { useWebSocket } from '../hooks/useWebSocket';
+
 /**
  * NotificationCenter Component
  * Phase 4: Real-time Notification System
  */
 const NotificationCenter = ({ userId, onClose }) => {
- const [notifications, setNotifications] = useState([]);
- const [unreadCount, setUnreadCount] = useState(0);
- const [filter, setFilter] = useState('all'); // all, unread, read
- const [loading, setLoading] = useState(true);
- const [error, setError] = useState('');
- const wsRef = useRef(null);
- const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
- const WS_BASE_URL = API_BASE_URL.replace(/^http/, 'ws');
- useEffect(() => {
- // Only fetch and connect if user is authenticated
- const token = localStorage.getItem('access_token');
- if (!token) {
- console.log('Not authenticated, skipping notifications');
- setLoading(false);
- return;
- }
- 
- // Fetch initial notifications
- fetchNotifications();
- // Connect to WebSocket for real-time updates
- connectWebSocket();
- return () => {
- if (wsRef.current) {
- wsRef.current.close();
- }
- };
- }, [userId]);
- const fetchNotifications = async () => {
- setLoading(true);
- setError('');
- try {
- const response = await fetch(
- `${API_BASE_URL}/api/notifications`,
- {
- headers: {
- 'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
- },
- }
- );
- if (!response.ok) throw new Error('Failed to fetch notifications');
- const data = await response.json();
- setNotifications(data.notifications);
- setUnreadCount(data.unread_count);
- } catch (err) {
- setError(err.message);
- } finally {
- setLoading(false);
- }
- };
- const connectWebSocket = () => {
- const token = localStorage.getItem('access_token');
- if (!token) {
- console.error('No access token found');
- return;
- }
- const wsUrl = `${WS_BASE_URL}/ws/notifications?token=${token}`;
- try {
- wsRef.current = new WebSocket(wsUrl);
- wsRef.current.onopen = () => {
- console.log('WebSocket connected');
- };
- wsRef.current.onmessage = (event) => {
- const newNotification = JSON.parse(event.data);
- setNotifications(prev => [newNotification, ...prev]);
- setUnreadCount(prev => prev + 1);
- };
- wsRef.current.onerror = (error) => {
- console.error('WebSocket error:', error);
- };
- wsRef.current.onclose = () => {
- console.log('WebSocket disconnected');
- // Only attempt to reconnect if still authenticated
- const token = localStorage.getItem('access_token');
- if (token) {
- setTimeout(() => connectWebSocket(), 5000);
- }
- };
- } catch (err) {
- console.error('Failed to connect WebSocket:', err);
- }
- };
+  const { user } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [filter, setFilter] = useState('all'); // all, unread, read
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  
+  const { messages: notifications, isConnected, error: wsError, setMessages: setNotifications } = useWebSocket('/api/notifications/ws');
+  
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
+  useEffect(() => {
+    // Only fetch if user is authenticated
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      console.log('Not authenticated, skipping notifications');
+      setLoading(false);
+      return;
+    }
+    
+    // Fetch initial notifications
+    fetchNotifications();
+  }, [userId]);
+
+  const fetchNotifications = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/notifications`,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          },
+        }
+      );
+      if (!response.ok) throw new Error('Failed to fetch notifications');
+      const data = await response.json();
+      // append existing messages that might have come via websocket already
+      setNotifications(prev => {
+         const existingIds = new Set(prev.map(n => n.id));
+         const newNotifs = data.notifications.filter(n => !existingIds.has(n.id));
+         return [...prev, ...newNotifs];
+      });
+      setUnreadCount(data.unread_count);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Update unread count when notifications change via websocket
+  useEffect(() => {
+     setUnreadCount(notifications.filter(n => !n.is_read).length);
+  }, [notifications]);
+
  const handleMarkAsRead = async (notificationId) => {
  try {
  const response = await fetch(
@@ -193,8 +175,20 @@ const NotificationCenter = ({ userId, onClose }) => {
  };
  return colors[priority] || '#999';
  };
- return (
- <div >
+  const getNavigation = () => {
+    if (user?.role === 'admin') return <AdminNavigation />;
+    if (user?.role === 'agent') return <AgentNavigation />;
+    if (user?.role === 'technician') return <TechnicianNavigation />;
+    return null;
+  };
+
+  return (
+    <DashboardLayout
+      title="NOTIFICATION CENTER"
+      subtitle="View and manage system alerts and updates"
+      navigation={getNavigation()}
+    >
+    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '0 1rem', fontFamily: "'Inter', sans-serif" }}>
  <div >
  <div >
  <h2>🔔 Notifications</h2>
@@ -291,6 +285,7 @@ const NotificationCenter = ({ userId, onClose }) => {
  </div>
  </div>
  </div>
+ </DashboardLayout>
  );
 };
 const formatTime = (timestamp) => {

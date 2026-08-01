@@ -9,9 +9,12 @@ from app.notifications.models import (
     NotificationType, NotificationPriority, NotificationChannel
 )
 from app.notifications.services import NotificationService
-from app.utils.auth import verify_token
+from app.utils.dependencies import get_current_user
+from app.utils.auth import decode_access_token
 from app.database.mongodb import get_database
 from typing import List, Optional
+from fastapi import WebSocket, WebSocketDisconnect
+import json
 
 router = APIRouter(prefix="/api/notifications", tags=["Notifications"])
 
@@ -27,10 +30,11 @@ async def get_notifications(
     offset: int = Query(0, ge=0),
     notification_type: Optional[str] = None,
     is_read: Optional[bool] = None,
-    user_id: str = Depends(verify_token),
+    current_user: dict = Depends(get_current_user),
     notification_service: NotificationService = Depends(get_notification_service)
 ):
     """Get user's notifications"""
+    user_id = str(current_user["_id"]) if "_id" in current_user else current_user.get("user_id")
     try:
         notif_type = NotificationType[notification_type.upper()] if notification_type else None
         
@@ -58,10 +62,11 @@ async def get_notifications(
 @router.post("/{notification_id}/read", response_model=dict)
 async def mark_notification_read(
     notification_id: str,
-    user_id: str = Depends(verify_token),
+    current_user: dict = Depends(get_current_user),
     notification_service: NotificationService = Depends(get_notification_service)
 ):
     """Mark notification as read"""
+    user_id = str(current_user["_id"]) if "_id" in current_user else current_user.get("user_id")
     try:
         success = await notification_service.mark_as_read(user_id, notification_id)
         
@@ -83,10 +88,11 @@ async def mark_notification_read(
 
 @router.post("/mark-all-read", response_model=dict)
 async def mark_all_notifications_read(
-    user_id: str = Depends(verify_token),
+    current_user: dict = Depends(get_current_user),
     notification_service: NotificationService = Depends(get_notification_service)
 ):
     """Mark all notifications as read"""
+    user_id = str(current_user["_id"]) if "_id" in current_user else current_user.get("user_id")
     try:
         count = await notification_service.mark_all_as_read(user_id)
         
@@ -104,10 +110,11 @@ async def mark_all_notifications_read(
 @router.delete("/{notification_id}", response_model=dict)
 async def delete_notification(
     notification_id: str,
-    user_id: str = Depends(verify_token),
+    current_user: dict = Depends(get_current_user),
     notification_service: NotificationService = Depends(get_notification_service)
 ):
     """Delete notification"""
+    user_id = str(current_user["_id"]) if "_id" in current_user else current_user.get("user_id")
     try:
         success = await notification_service.delete_notification(user_id, notification_id)
         
@@ -129,10 +136,11 @@ async def delete_notification(
 
 @router.get("/stats", response_model=NotificationStats)
 async def get_notification_stats(
-    user_id: str = Depends(verify_token),
+    current_user: dict = Depends(get_current_user),
     notification_service: NotificationService = Depends(get_notification_service)
 ):
     """Get notification statistics"""
+    user_id = str(current_user["_id"]) if "_id" in current_user else current_user.get("user_id")
     try:
         stats = await notification_service.get_notification_stats(user_id)
         return stats
@@ -145,10 +153,11 @@ async def get_notification_stats(
 
 @router.get("/preferences", response_model=NotificationPreference)
 async def get_notification_preferences(
-    user_id: str = Depends(verify_token),
+    current_user: dict = Depends(get_current_user),
     notification_service: NotificationService = Depends(get_notification_service)
 ):
     """Get notification preferences"""
+    user_id = str(current_user["_id"]) if "_id" in current_user else current_user.get("user_id")
     try:
         prefs = await notification_service.get_notification_preferences(user_id)
         return prefs
@@ -169,10 +178,11 @@ async def update_notification_preferences(
     quiet_hours_start: Optional[str] = None,
     quiet_hours_end: Optional[str] = None,
     mute_notifications: Optional[bool] = None,
-    user_id: str = Depends(verify_token),
+    current_user: dict = Depends(get_current_user),
     notification_service: NotificationService = Depends(get_notification_service)
 ):
     """Update notification preferences"""
+    user_id = str(current_user["_id"]) if "_id" in current_user else current_user.get("user_id")
     try:
         channels = [NotificationChannel[c.upper()] for c in enabled_channels] if enabled_channels else None
         types = [NotificationType[t.upper()] for t in enabled_types] if enabled_types else None
@@ -195,3 +205,57 @@ async def update_notification_preferences(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to update preferences: {str(e)}"
         )
+
+# ============================================
+# WEBSOCKET FOR REAL-TIME UPDATES
+# ============================================
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
+
+    async def send_personal_message(self, message: str, websocket: WebSocket):
+        await websocket.send_text(message)
+
+manager = ConnectionManager()
+
+@router.websocket("/ws")
+async def websocket_endpoint(
+    websocket: WebSocket,
+    token: Optional[str] = Query(None)
+):
+    """
+    WebSocket endpoint for real-time notification updates
+    """
+    if not token:
+        await websocket.close(code=1008, reason="Authentication token required")
+        return
+        
+    try:
+        # Decode token to authenticate
+        payload = decode_access_token(token)
+        user_email = payload.get("sub")
+        
+        if not user_email:
+            await websocket.close(code=1008, reason="Invalid token")
+            return
+            
+        await manager.connect(websocket)
+        try:
+            while True:
+                # Keep connection alive and handle incoming messages if any
+                data = await websocket.receive_text()
+                # Could handle ping/pong here or manual mark-as-read via WS
+        except WebSocketDisconnect:
+            manager.disconnect(websocket)
+    except Exception as e:
+        print(f"WebSocket Error: {e}")
+        await websocket.close(code=1008, reason="Authentication failed")

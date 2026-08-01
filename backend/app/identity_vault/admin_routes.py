@@ -23,66 +23,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/admin", tags=["Admin Management"])
 
 
-@router.get("/dashboard-stats")
-async def get_dashboard_stats(
-    current_admin: dict = Depends(get_current_admin),
-    db = Depends(get_database)
-):
-    """
-    Get real-time dashboard statistics
-    
-    Returns:
-        - active_agents: Count of active agents
-        - active_technicians: Count of active technicians
-        - open_missions: Count of pending missions
-        - in_progress_missions: Count of in-progress missions
-        - completed_missions: Count of completed missions
-    """
-    try:
-        users_collection = db["users"]
-        missions_collection = db["missions"]
-        
-        # Count active agents
-        active_agents = await users_collection.count_documents({
-            "role": "agent",
-            "status": "active"
-        })
-        
-        # Count active technicians
-        active_technicians = await users_collection.count_documents({
-            "role": "technician",
-            "status": "active"
-        })
-        
-        # Count missions by status
-        open_missions = await missions_collection.count_documents({
-            "status": "pending"
-        })
-        
-        in_progress_missions = await missions_collection.count_documents({
-            "status": "in_progress"
-        })
-        
-        completed_missions = await missions_collection.count_documents({
-            "status": "completed"
-        })
-        
-        return {
-            "active_agents": active_agents,
-            "active_technicians": active_technicians,
-            "open_missions": open_missions,
-            "in_progress_missions": in_progress_missions,
-            "completed_missions": completed_missions
-        }
-    
-    except Exception as e:
-        logger.error(f"Error fetching dashboard stats: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error fetching dashboard statistics"
-        )
-
-
 @router.post("/create-user", response_model=AdminCreateUserResponse)
 async def create_ranger_user(
     request: AdminCreateUserRequest,

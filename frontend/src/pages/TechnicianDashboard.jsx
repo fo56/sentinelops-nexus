@@ -46,7 +46,7 @@ export default function TechnicianDashboard() {
 
   const fetchTechnicianData = async () => {
     try {
-      const stats = await apiClient.get('/auth/ranger-stats');
+      const stats = await apiClient.get('/api/analytics/ranger-stats');
       setTechnicianScore(stats.performance_score || 100);
     } catch (err) {
       console.error('Error fetching technician data:', err);

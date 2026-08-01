@@ -79,8 +79,4 @@ htmlcov/
 .pycache
 
 # Scratchpad / Utility Scripts
-pull_model.py
-reindex.py
-test_atlas.py
-test_search_after.py
-test_search_before.py
+seed_data.py

@@ -4,7 +4,7 @@ import SentinelLogo from './SentinelLogo';
 import GridBackground from './GridBackground';
 import { useAuth } from '../hooks/useAuth';
 
-export default function DashboardLayout({ children, title, subtitle, navigation }) {
+export default function DashboardLayout({ children, title, subtitle, navigation, headerActions }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -180,28 +180,38 @@ export default function DashboardLayout({ children, title, subtitle, navigation 
           padding: '0.75rem 1rem',
           position: 'relative',
           zIndex: 10,
-          width: '100%'
+          width: '100%',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
         }}>
-          <h1 style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: '1.75rem',
-            fontWeight: 500,
-            letterSpacing: '0.05em',
-            color: 'var(--text-primary)',
-            margin: 0
-          }}>
-            {title}
-          </h1>
-          {subtitle && (
-            <p style={{
+          <div>
+            <h1 style={{
               fontFamily: "'JetBrains Mono', monospace",
-              fontSize: '0.85rem',
-              color: 'rgba(255, 255, 255, 0.3)',
-              marginTop: '0.1rem',
+              fontSize: '1.75rem',
+              fontWeight: 500,
+              letterSpacing: '0.05em',
+              color: 'var(--text-primary)',
               margin: 0
             }}>
-              {subtitle}
-            </p>
+              {title}
+            </h1>
+            {subtitle && (
+              <p style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: '0.85rem',
+                color: 'rgba(255, 255, 255, 0.3)',
+                marginTop: '0.1rem',
+                margin: 0
+              }}>
+                {subtitle}
+              </p>
+            )}
+          </div>
+          {headerActions && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              {headerActions}
+            </div>
           )}
         </div>
       </div>

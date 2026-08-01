@@ -24,7 +24,7 @@ async def create_admin():
         await users_collection.delete_many({'email': settings.DEFAULT_ADMIN_EMAIL})
         
         # Hash password
-        pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
         hashed_password = pwd_context.hash(settings.DEFAULT_ADMIN_PASSWORD)
         
         # Create admin user
