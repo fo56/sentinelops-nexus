@@ -1,18 +1,19 @@
 """
-Ops Planner Routes - Phase 5 Complete
+Ops Planner Routes
 Mission Board API with Kanban, Agent Assignment, Real-time Updates
 """
 from typing import List, Optional
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
 import logging
 
 from ..database.mongodb import get_database
 from ..utils.dependencies import get_current_user
 from ..utils.auth import decode_access_token
 from .services import MissionService
-from .websocket import manager, get_connection_manager
+from .websocket import manager
 from .models import (
     MissionCreate, MissionAssign, MissionStatusUpdate, MissionUpdate,
     MissionResponse, MissionCardResponse, MissionDocumentInfo,
@@ -59,6 +60,14 @@ async def create_mission(
     
     service = MissionService(db)
     mission = await service.create_mission(mission_data, current_user["email"])
+    
+    await manager.broadcast({
+        "type": "mission_created",
+        "mission_id": str(mission.id),
+        "data": jsonable_encoder(mission),
+        "user": current_user["email"]
+    })
+    
     return mission
 
 
@@ -143,6 +152,14 @@ async def update_mission(
     
     service = MissionService(db)
     mission = await service.update_mission(mission_id, mission_update, current_user["email"])
+    
+    await manager.broadcast({
+        "type": "mission_updated",
+        "mission_id": mission_id,
+        "data": jsonable_encoder(mission),
+        "user": current_user["email"]
+    })
+    
     return mission
 
 
@@ -167,6 +184,14 @@ async def delete_mission(
     
     service = MissionService(db)
     result = await service.delete_mission(mission_id, current_user["email"])
+    
+    await manager.broadcast({
+        "type": "mission_deleted",
+        "mission_id": mission_id,
+        "data": result,
+        "user": current_user["email"]
+    })
+    
     return result
 
 
@@ -204,6 +229,14 @@ async def assign_mission_to_agent(
     
     service = MissionService(db)
     mission = await service.assign_mission_to_agent(mission_id, assignment, current_user["email"])
+    
+    await manager.broadcast({
+        "type": "mission_assigned",
+        "mission_id": mission_id,
+        "data": jsonable_encoder(mission),
+        "user": current_user["email"]
+    })
+    
     return mission
 
 
@@ -239,6 +272,14 @@ async def update_mission_status(
         current_user["email"],
         current_user["role"]
     )
+    
+    await manager.broadcast({
+        "type": "mission_moved",
+        "mission_id": mission_id,
+        "data": jsonable_encoder(mission),
+        "user": current_user["email"]
+    })
+    
     return mission
 
 
@@ -484,7 +525,7 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "ops-planner",
-        "phase": "5",
+        "module": "ops_planner",
         "features": [
             "mission_management",
             "agent_assignment",

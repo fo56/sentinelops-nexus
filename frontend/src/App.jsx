@@ -5,13 +5,8 @@ import { routes } from './router/routes';
 
 /**
  * Main App Component
- * Integrates Phase 1, 2, 3, and 4 frontend components
- * 
- * Phase 1: Knowledge Crystal, Doc Sage
- * Phase 2: Identity Vault, Admin Dashboard
- * Phase 3: 2FA, Biometric Auth, Analytics
- * Phase 4: Notifications, Data Export
- */
+ * Integrates Knowledge Crystal, Doc Sage, Identity Vault, Admin Dashboard,
+ * Analytics, and Data Export frontend components */
 function App() {
   return (
     <BrowserRouter>

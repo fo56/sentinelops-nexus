@@ -1,13 +1,16 @@
+import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { LogOut, Home, Shield, User, Bell } from 'lucide-react';
+import { LogOut, Home, Shield, User } from 'lucide-react';
 import SentinelLogo from './SentinelLogo';
 import GridBackground from './GridBackground';
 import { useAuth } from '../hooks/useAuth';
+import AIChatModal from './AIChatModal';
 
 export default function DashboardLayout({ children, title, subtitle, navigation, headerActions }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [isChatModalOpen, setIsChatModalOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -65,36 +68,6 @@ export default function DashboardLayout({ children, title, subtitle, navigation,
             alignItems: 'center',
             gap: '1rem'
           }}>
-            {/* Notifications Button */}
-            <Link
-              to="/notifications"
-              style={{
-                position: 'relative',
-                backgroundColor: 'transparent',
-                border: 'none',
-                color: 'var(--text-primary)',
-                cursor: 'pointer',
-                padding: '0.5rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'color 0.3s ease',
-                textDecoration: 'none'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'}
-              onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
-            >
-              <Bell size={18} />
-              <div style={{
-                position: 'absolute',
-                top: '0.25rem',
-                right: '0.25rem',
-                width: '0.5rem',
-                height: '0.5rem',
-                backgroundColor: 'var(--accent-amber)',
-                borderRadius: '50%'
-              }} />
-            </Link>
 
             {/* User Info */}
             <div style={{
@@ -208,11 +181,45 @@ export default function DashboardLayout({ children, title, subtitle, navigation,
               </p>
             )}
           </div>
-          {headerActions && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              {headerActions}
-            </div>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <button
+              onClick={() => setIsChatModalOpen(true)}
+              style={{
+                height: '40px',
+                padding: '0 16px',
+                borderRadius: '4px',
+                backgroundColor: 'rgba(41, 163, 153, 0.1)',
+                color: 'var(--primary)',
+                border: '1px solid rgba(41, 163, 153, 0.3)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.3s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(41, 163, 153, 0.2)';
+                e.currentTarget.style.border = '1px solid var(--primary)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(41, 163, 153, 0.1)';
+                e.currentTarget.style.border = '1px solid rgba(41, 163, 153, 0.3)';
+              }}
+              title="Chat with AI"
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <span style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>Chat with AI</span>
+              </div>
+            </button>
+            {headerActions && (
+              <div>
+                {headerActions}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -297,6 +304,13 @@ export default function DashboardLayout({ children, title, subtitle, navigation,
           </div>
         </div>
       </footer>
+
+      {isChatModalOpen && (
+        <AIChatModal 
+          onClose={() => setIsChatModalOpen(false)}
+          userRole={user?.role}
+        />
+      )}
     </div>
   );
 }

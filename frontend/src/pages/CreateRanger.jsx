@@ -254,7 +254,7 @@ export default function CreateRanger({ onUserCreated }) {
           {/* Email and Full Name Row */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem', marginBottom: '1rem' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '400', color: 'rgba(255, 255, 255, 0.65)', marginBottom: '0.5rem', letterSpacing: '0.5px', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+              <label className="label-cyber">
                 Email Address
               </label>
               <input
@@ -264,31 +264,12 @@ export default function CreateRanger({ onUserCreated }) {
                 placeholder="ranger@sentinelops.com"
                 required
                 disabled={loading}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  backgroundColor: '#1a1f2e',
-                  border: '1px solid #3a4050',
-                  borderRadius: '0.375rem',
-                  color: 'rgba(255, 255, 255, 0.85)',
-                  fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-                  fontSize: '0.9rem',
-                  fontWeight: '300',
-                  transition: 'all 0.2s',
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = '#29a399';
-                  e.currentTarget.style.boxShadow = '0 0 0 2px rgba(85, 125, 120, 0.15)';
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = '#3a4050';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
+                className="input-cyber"
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '400', color: 'rgba(255, 255, 255, 0.65)', marginBottom: '0.5rem', letterSpacing: '0.5px', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+              <label className="label-cyber">
                 Full Name
               </label>
               <input
@@ -298,26 +279,7 @@ export default function CreateRanger({ onUserCreated }) {
                 placeholder="John Ranger"
                 required
                 disabled={loading}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  backgroundColor: '#1a1f2e',
-                  border: '1px solid #3a4050',
-                  borderRadius: '0.375rem',
-                  color: 'rgba(255, 255, 255, 0.85)',
-                  fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-                  fontSize: '0.9rem',
-                  fontWeight: '300',
-                  transition: 'all 0.2s',
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = '#29a399';
-                  e.currentTarget.style.boxShadow = '0 0 0 2px rgba(85, 125, 120, 0.15)';
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = '#3a4050';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
+                className="input-cyber"
               />
             </div>
           </div>
@@ -325,7 +287,7 @@ export default function CreateRanger({ onUserCreated }) {
           {/* Password Row */}
           <div style={{ marginBottom: '1rem' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '400', color: 'rgba(255, 255, 255, 0.65)', marginBottom: '0.5rem', letterSpacing: '0.5px', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+              <label className="label-cyber">
                 Password
               </label>
               <input
@@ -335,33 +297,14 @@ export default function CreateRanger({ onUserCreated }) {
                 placeholder="Minimum 8 characters"
                 required
                 disabled={loading}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  backgroundColor: '#1a1f2e',
-                  border: '1px solid #3a4050',
-                  borderRadius: '0.375rem',
-                  color: 'rgba(255, 255, 255, 0.85)',
-                  fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-                  fontSize: '0.9rem',
-                  fontWeight: '300',
-                  transition: 'all 0.2s',
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = '#29a399';
-                  e.currentTarget.style.boxShadow = '0 0 0 2px rgba(85, 125, 120, 0.15)';
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = '#3a4050';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
+                className="input-cyber"
               />
             </div>
           </div>
 
           {/* Role Selection */}
           <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '400', color: 'rgba(255, 255, 255, 0.65)', marginBottom: '0.75rem', letterSpacing: '0.5px', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+            <label className="label-cyber">
               Role
             </label>
             <div style={{ display: 'flex', gap: '1.5rem' }}>
@@ -372,14 +315,9 @@ export default function CreateRanger({ onUserCreated }) {
                   checked={createForm.role === 'technician'}
                   onChange={() => setCreateForm({ ...createForm, role: 'technician' })}
                   disabled={loading}
-                  style={{
-                    width: '18px',
-                    height: '18px',
-                    cursor: 'pointer',
-                    accentColor: '#29a399',
-                  }}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#29a399' }}
                 />
-                <label htmlFor="role-technician" style={{ fontSize: '0.9rem', fontWeight: '300', color: 'rgba(255, 255, 255, 0.75)', cursor: 'pointer', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+                <label htmlFor="role-technician" className="label-cyber" style={{ marginBottom: 0, cursor: 'pointer' }}>
                   Technician
                 </label>
               </div>
@@ -390,14 +328,9 @@ export default function CreateRanger({ onUserCreated }) {
                   checked={createForm.role === 'agent'}
                   onChange={() => setCreateForm({ ...createForm, role: 'agent' })}
                   disabled={loading}
-                  style={{
-                    width: '18px',
-                    height: '18px',
-                    cursor: 'pointer',
-                    accentColor: '#29a399',
-                  }}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#29a399' }}
                 />
-                <label htmlFor="role-agent" style={{ fontSize: '0.9rem', fontWeight: '300', color: 'rgba(255, 255, 255, 0.75)', cursor: 'pointer', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+                <label htmlFor="role-agent" className="label-cyber" style={{ marginBottom: 0, cursor: 'pointer' }}>
                   Agent
                 </label>
               </div>
@@ -407,45 +340,24 @@ export default function CreateRanger({ onUserCreated }) {
           {/* Age Row */}
           <div style={{ marginBottom: '1rem' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '400', color: 'rgba(255, 255, 255, 0.65)', marginBottom: '0.5rem', letterSpacing: '0.5px', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+              <label className="label-cyber">
                 Age
               </label>
               <input
                 type="number"
-                min="18"
-                max="100"
                 value={createForm.age}
                 onChange={(e) => setCreateForm({ ...createForm, age: e.target.value })}
                 placeholder="Age (18-100)"
                 required
                 disabled={loading}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  backgroundColor: '#1a1f2e',
-                  border: '1px solid #3a4050',
-                  borderRadius: '0.375rem',
-                  color: 'rgba(255, 255, 255, 0.85)',
-                  fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-                  fontSize: '0.9rem',
-                  fontWeight: '300',
-                  transition: 'all 0.2s',
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = '#29a399';
-                  e.currentTarget.style.boxShadow = '0 0 0 2px rgba(85, 125, 120, 0.15)';
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = '#3a4050';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
+                className="input-cyber"
               />
             </div>
           </div>
 
           {/* Marital Status Selection */}
           <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '400', color: 'rgba(255, 255, 255, 0.65)', marginBottom: '0.75rem', letterSpacing: '0.5px', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+            <label className="label-cyber">
               Marital Status
             </label>
             <div style={{ display: 'flex', gap: '1.5rem' }}>
@@ -456,14 +368,9 @@ export default function CreateRanger({ onUserCreated }) {
                   checked={createForm.maritalStatus === 'single'}
                   onChange={() => setCreateForm({ ...createForm, maritalStatus: 'single' })}
                   disabled={loading}
-                  style={{
-                    width: '18px',
-                    height: '18px',
-                    cursor: 'pointer',
-                    accentColor: '#29a399',
-                  }}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#29a399' }}
                 />
-                <label htmlFor="status-single" style={{ fontSize: '0.9rem', fontWeight: '300', color: 'rgba(255, 255, 255, 0.75)', cursor: 'pointer', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+                <label htmlFor="status-single" className="label-cyber" style={{ marginBottom: 0, cursor: 'pointer' }}>
                   Single
                 </label>
               </div>
@@ -474,14 +381,9 @@ export default function CreateRanger({ onUserCreated }) {
                   checked={createForm.maritalStatus === 'married'}
                   onChange={() => setCreateForm({ ...createForm, maritalStatus: 'married' })}
                   disabled={loading}
-                  style={{
-                    width: '18px',
-                    height: '18px',
-                    cursor: 'pointer',
-                    accentColor: '#29a399',
-                  }}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#29a399' }}
                 />
-                <label htmlFor="status-married" style={{ fontSize: '0.9rem', fontWeight: '300', color: 'rgba(255, 255, 255, 0.75)', cursor: 'pointer', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+                <label htmlFor="status-married" className="label-cyber" style={{ marginBottom: 0, cursor: 'pointer' }}>
                   Married
                 </label>
               </div>
@@ -497,14 +399,9 @@ export default function CreateRanger({ onUserCreated }) {
                 checked={createForm.criminalRecord}
                 onChange={(e) => setCreateForm({ ...createForm, criminalRecord: e.target.checked })}
                 disabled={loading}
-                style={{
-                  width: '18px',
-                  height: '18px',
-                  cursor: 'pointer',
-                  accentColor: '#29a399',
-                }}
+                style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#29a399' }}
               />
-              <label htmlFor="criminalRecord" style={{ fontSize: '0.9rem', fontWeight: '300', color: 'rgba(255, 255, 255, 0.75)', cursor: 'pointer', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+              <label htmlFor="criminalRecord" className="label-cyber" style={{ marginBottom: 0, cursor: 'pointer' }}>
                 Has Criminal Record
               </label>
             </div>
@@ -516,14 +413,9 @@ export default function CreateRanger({ onUserCreated }) {
                 checked={createForm.healthIssues}
                 onChange={(e) => setCreateForm({ ...createForm, healthIssues: e.target.checked })}
                 disabled={loading}
-                style={{
-                  width: '18px',
-                  height: '18px',
-                  cursor: 'pointer',
-                  accentColor: '#29a399',
-                }}
+                style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#29a399' }}
               />
-              <label htmlFor="healthIssues" style={{ fontSize: '0.9rem', fontWeight: '300', color: 'rgba(255, 255, 255, 0.75)', cursor: 'pointer', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+              <label htmlFor="healthIssues" className="label-cyber" style={{ marginBottom: 0, cursor: 'pointer' }}>
                 Has Health Issues
               </label>
             </div>

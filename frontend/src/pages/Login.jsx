@@ -385,7 +385,7 @@ export default function Login() {
             {/* Error message */}
             {error && (
               <div style={baseStyles.errorBox}>
-                <span>❌ {error}</span>
+                <span> {error}</span>
                 <button
                   type="button"
                   onClick={() => setError('')}
@@ -540,7 +540,7 @@ export default function Login() {
                 </div>
 
                 <div style={baseStyles.qrInfo}>
-                  📱 Scan your QR code using your device camera
+                   Scan your QR code using your device camera
                   <br />
                   <span style={{ fontSize: '0.65rem', marginTop: '0.5rem', display: 'block' }}>
                     Demo token: RANGER-QR-TOKEN

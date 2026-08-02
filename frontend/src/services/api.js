@@ -101,7 +101,7 @@ export const authService = {
 
   // Ranger Login (Email + Password)
   async rangerLogin(email, password) {
-    const response = await apiClient.post('/auth/ranger/login', { email, password });
+    const response = await apiClient.post('/auth/login', { email, password });
     if (response.access_token) {
       localStorage.setItem('access_token', response.access_token);
       localStorage.setItem('user_role', response.role);
@@ -204,7 +204,7 @@ export const adminService = {
 };
 
 
-// Knowledge Crystal Services (Phase 1)
+// Knowledge Crystal Services
 export const knowledgeService = {
   // Search Documents
   async search(query, limit = 10) {
@@ -224,6 +224,33 @@ export const knowledgeService = {
       metadata,
     });
   },
+};
+
+// Facility Ops Services
+export const facilityOpsService = {
+  // Get active issues for the logged-in technician
+  async getMyIssues() {
+    return apiClient.get('/facility-ops/issues');
+  },
+
+  // Get completed issues for the logged-in technician
+  async getCompletedIssues() {
+    return apiClient.get('/facility-ops/issues/solved');
+  },
+
+  // Submit outcome for an issue
+  async submitOutcome(issueId, outcome, notes, resolutionDetails = null) {
+    return apiClient.post(`/facility-ops/issues/${issueId}/outcome`, {
+      outcome,
+      notes,
+      resolution_details: resolutionDetails
+    });
+  },
+  
+  // Get performance stats for the logged-in technician
+  async getPerformanceStats() {
+    return apiClient.get('/api/analytics/ranger-stats');
+  }
 };
 
 export default apiClient;

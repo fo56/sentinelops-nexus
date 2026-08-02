@@ -153,9 +153,8 @@ export const knowledgeCrystalService = {
    * @param {Object} chatRequest - Chat request data with query, user_role, limit
    * @returns {Promise} - AI response
    */
-  chatWithAI: async (chatRequest) => {
+  chatWithAI: async (chatRequest, onChunk) => {
     try {
-      // Transform the request to match backend expectations
       const payload = {
         query: chatRequest.query || chatRequest.question,
         user_role: chatRequest.user_role || chatRequest.category || 'agent',
@@ -163,19 +162,54 @@ export const knowledgeCrystalService = {
         tags: chatRequest.tags || null,
       };
 
+      const token = localStorage.getItem('access_token');
       const response = await fetch(`${API_BASE_URL}/kb/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
         body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({}));
         throw new Error(error.detail || 'Chat request failed');
       }
 
+      if (onChunk) {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let buffer = '';
+        
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          
+          // Keep the last partial line in the buffer
+          buffer = lines.pop();
+          
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const dataStr = line.slice(6);
+              if (dataStr.trim() === '') continue;
+              
+              try {
+                const parsed = JSON.parse(dataStr);
+                onChunk(parsed);
+              } catch (e) {
+                console.warn('Failed to parse SSE data:', dataStr);
+              }
+            }
+          }
+        }
+        return { success: true };
+      }
+      
+      // Fallback if onChunk is not provided (legacy)
       return response.json();
     } catch (error) {
       console.error('Chat error:', error);

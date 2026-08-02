@@ -13,7 +13,6 @@ class AnalyticsType(str, Enum):
     LOGIN_ATTEMPTS = "login_attempts"
     USER_ACTIVITY = "user_activity"
     DOCUMENT_OPERATIONS = "document_operations"
-    BIOMETRIC_VERIFICATION = "biometric_verification"
     ROLE_DISTRIBUTION = "role_distribution"
     SECURITY_EVENTS = "security_events"
 
@@ -67,8 +66,6 @@ class DocumentAnalytics(BaseModel):
 class SecurityAnalytics(BaseModel):
     """Security event statistics"""
     total_security_events: int
-    failed_2fa_attempts: int
-    biometric_failures: int
     unauthorized_access_attempts: int
     suspicious_activities: int
     events_by_severity: Dict[str, int]  # critical, high, medium, low

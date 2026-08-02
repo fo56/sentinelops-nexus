@@ -23,7 +23,7 @@ export default function ProtectedRoute({ children, requiredRole = null }) {
     console.warn(`Access denied. Required role: ${requiredRole}, User role: ${user?.role}`);
     return (
       <div className="error-container">
-        <h2>❌ Access Denied</h2>
+        <h2> Access Denied</h2>
         <p>You don't have permission to access this page. Required: {requiredRole}, Your role: {user?.role}</p>
       </div>
     );

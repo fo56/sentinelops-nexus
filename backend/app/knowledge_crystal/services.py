@@ -44,11 +44,15 @@ class KBPageService:
                 "error": f"Failed to process content: {str(e)}"
             }
         
+        # Generate summary
+        long_summary = await self._generate_summary(page_data.content)
+        
         # Create page document
         page_doc = {
             "_id": ObjectId(),
             "title": page_data.title,
             "content": page_data.content,
+            "long_summary": long_summary,
             "category": page_data.category,
             "mission_id": page_data.mission_id,
             "country": page_data.country,
@@ -123,7 +127,7 @@ class KBPageService:
                 page["_id"] = str(page["_id"])
             return page
         except Exception as e:
-            print(f"❌ Error fetching page: {e}")
+            print(f" Error fetching page: {e}")
             return None
     
     async def update_page(self, page_id: str, update_data: KBPageUpdate) -> Dict[str, Any]:
@@ -223,40 +227,39 @@ class KBPageService:
             "success": True,
             "deleted_count": result.deleted_count
         }
-    
-    async def list_pages(
-        self,
-        visibility: Optional[str] = None,
-        tags: Optional[List[str]] = None,
-        limit: int = 10,
-        skip: int = 0
-    ) -> Dict[str, Any]:
-        """List knowledge pages with optional filters"""
-        query = {}
+
+    async def _generate_summary(self, content: str) -> str:
+        """Generate a detailed summary of the document using Ollama"""
+        import requests
+        from app.config.settings import settings
         
-        if visibility:
-            query["visibility"] = visibility
-        
-        if tags:
-            query["tags"] = {"$in": tags}
-        
-        pages = await self.collection.find(query) \
-            .skip(skip) \
-            .limit(limit) \
-            .to_list(length=limit)
-        
-        total = await self.collection.count_documents(query)
-        
-        # Convert ObjectId to string
-        for page in pages:
-            page["_id"] = str(page["_id"])
-        
-        return {
-            "pages": pages,
-            "total": total,
-            "limit": limit,
-            "skip": skip
-        }
+        try:
+            prompt = f"""Generate a comprehensive summary (150-200 words) of the following document:
+
+{content[:4000]}
+
+Provide a detailed summary that captures the main topics, key information, and important details."""
+            
+            response = requests.post(
+                f"{settings.OLLAMA_BASE_URL}/api/generate",
+                json={
+                    "model": settings.OLLAMA_MODEL,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {
+                        "num_predict": 250,
+                        "temperature": 0.1
+                    }
+                },
+                timeout=120
+            )
+            
+            if response.status_code == 200:
+                return response.json()["response"].strip()
+            else:
+                return content[:500]
+        except Exception as e:
+            return content[:500]
 
 
 class KBSearchService:
@@ -288,7 +291,7 @@ class KBSearchService:
         try:
             query_embedding = embedding_service.embed_query(query.query)
         except Exception as e:
-            print(f"❌ Failed to embed query: {e}")
+            print(f" Failed to embed query: {e}")
             return []
         
         # Build vector store filters for category
@@ -341,13 +344,14 @@ class KBSearchService:
             
             seen_pages.add(page_id)
             
-            # Generate long summary and extract matched points
-            long_summary = await self._generate_summary(page.get("content", ""))
-            matched_points = await self._extract_matched_points(
-                page.get("content", ""),
-                query.query,
-                chunk.get("content", "")
-            )
+            # Get pre-computed summary (fallback to first 200 chars if missing)
+            long_summary = page.get("long_summary")
+            if not long_summary:
+                long_summary = page.get("content", "")[:200] + "..."
+            
+            # Use the raw vector chunk as the matched point
+            chunk_content = chunk.get("content", "").strip()
+            matched_points = [chunk_content[:500] + "..." if len(chunk_content) > 500 else chunk_content]
             
             result = SearchResult(
                 document_id=str(page["_id"]),
@@ -367,94 +371,6 @@ class KBSearchService:
                 break
         
         return results
-    
-    async def _generate_summary(self, content: str) -> str:
-        """Generate a detailed summary of the document using Ollama"""
-        import requests
-        
-        try:
-            prompt = f"""Generate a comprehensive summary (150-200 words) of the following document:
-
-{content[:4000]}
-
-Provide a detailed summary that captures the main topics, key information, and important details."""
-            
-            response = requests.post(
-                f"{settings.OLLAMA_BASE_URL}/api/generate",
-                json={
-                    "model": settings.OLLAMA_MODEL,
-                    "prompt": prompt,
-                    "stream": False,
-                    "options": {
-                        "num_predict": 250,
-                        "temperature": 0.1
-                    }
-                },
-                timeout=120
-            )
-            
-            if response.status_code == 200:
-                return response.json()["response"].strip()
-            else:
-                print(f"❌ Ollama API error: {response.status_code}")
-                return content[:500]
-        except Exception as e:
-            print(f"❌ Error generating summary: {e}")
-            return content[:500]
-    
-    async def _extract_matched_points(self, content: str, query: str, relevant_chunk: str) -> List[str]:
-        """Extract specific points from the document that match the query using Ollama"""
-        import requests
-        import json
-        import re
-        
-        try:
-            prompt = f"""Based on the user query: "{query}"
-
-Extract 3-5 specific points from this document that are most relevant to the query:
-
-Relevant Section:
-{relevant_chunk}
-
-Full Context:
-{content[:3000]}
-
-Return the points as a JSON array of strings. Each point should be a concise statement (1-2 sentences)."""
-            
-            response = requests.post(
-                f"{settings.OLLAMA_BASE_URL}/api/generate",
-                json={
-                    "model": settings.OLLAMA_MODEL,
-                    "prompt": prompt,
-                    "stream": False,
-                    "options": {
-                        "num_predict": 300,
-                        "temperature": 0.1
-                    }
-                },
-                timeout=120
-            )
-            
-            if response.status_code == 200:
-                response_text = response.json()["response"].strip()
-                
-                # Try to parse JSON response
-                json_match = re.search(r'\[.*\]', response_text, re.DOTALL)
-                if json_match:
-                    points = json.loads(json_match.group())
-                    return points[:5]
-                else:
-                    # Fallback: split by lines and extract bullet points
-                    lines = [line.strip().lstrip('-•*').strip() 
-                            for line in response_text.split('\n') 
-                            if line.strip() and not line.strip().startswith('[')]
-                    return [l for l in lines if len(l) > 10][:5]
-            else:
-                print(f"❌ Ollama API error: {response.status_code}")
-                return [relevant_chunk[:200]]
-        except Exception as e:
-            print(f"❌ Error extracting matched points: {e}")
-            return [relevant_chunk[:200]]
 
 
 class KBRAGService:
@@ -544,7 +460,7 @@ Please provide a clear, concise answer citing the relevant sources."""
             )
         
         except Exception as e:
-            print(f"❌ Error generating answer: {e}")
+            print(f" Error generating answer: {e}")
             return QueryResponse(
                 answer=f"Error generating answer: {str(e)}",
                 sources=sources,
@@ -572,17 +488,15 @@ class KBChatService:
         """
         # Determine category based on user role
         category = None
-        if chat_req.user_role.lower() == "agent":
-            category = DocumentCategory.AGENT
-        elif chat_req.user_role.lower() == "technician":
-            category = DocumentCategory.TECHNICIAN
-        else:
-            return ChatQueryResponse(
-                answer="Invalid user role. Must be 'agent' or 'technician'.",
-                matched_documents=[],
-                confidence=0.0,
-                model_used=settings.OLLAMA_MODEL
-            )
+        if chat_req.user_role:
+            if chat_req.user_role.lower() == "agent":
+                category = DocumentCategory.AGENT
+            elif chat_req.user_role.lower() == "technician":
+                category = DocumentCategory.TECHNICIAN
+            elif chat_req.user_role.lower() == "admin":
+                category = None  # Admins search everything
+            else:
+                category = DocumentCategory.AGENT  # Fallback
         
         # Create search query with role-based filtering
         search_query = SearchQuery(
@@ -595,7 +509,7 @@ class KBChatService:
         # Search for relevant documents
         matched_documents = await self.search_service.search(search_query, limit=chat_req.limit)
         
-        if not matched_documents:
+        if not matched_documents or matched_documents[0].similarity_score < 0.5:
             return ChatQueryResponse(
                 answer=f"No relevant documents found in the Knowledge Crystal for {chat_req.user_role}s. Please try a different query or contact an administrator to add relevant documentation.",
                 matched_documents=[],
@@ -624,16 +538,18 @@ Focus on technical specifications, setup procedures, maintenance guidelines, and
         
         rag_prompt = f"""{role_context}
 
-User Query: {chat_req.query}
-
 Available Information from Knowledge Crystal:
 {context}
 
-Please provide a comprehensive answer to the user's query based on the available documents. 
-If multiple documents are relevant, synthesize the information coherently.
-Always mention which documents you're referencing (by title or mission ID).
+User Query: {chat_req.query}
 
-If the query cannot be fully answered with the available information, explain what is available and what might be missing."""
+INSTRUCTIONS:
+1. Answer the User Query directly based ONLY on the Available Information.
+2. DO NOT use conversational filler (e.g. "Based on the provided documents...", "I'll attempt to provide...").
+3. DO NOT output internal monologues, rhetorical questions, or preamble.
+4. Go straight to the point. Start your response immediately with the factual answer.
+5. If the query cannot be fully answered, state exactly what is missing without apologizing.
+"""
         
         try:
             # Generate answer using Ollama
@@ -646,7 +562,7 @@ If the query cannot be fully answered with the available information, explain wh
                     "prompt": rag_prompt,
                     "stream": False,
                     "options": {
-                        "num_predict": 600,
+                        "num_predict": 250,
                         "temperature": 0.1
                     }
                 },
@@ -669,13 +585,109 @@ If the query cannot be fully answered with the available information, explain wh
             )
         
         except Exception as e:
-            print(f"❌ Error generating chat response: {e}")
+            print(f" Error generating chat response: {e}")
             return ChatQueryResponse(
                 answer=f"Error generating response: {str(e)}",
                 matched_documents=matched_documents,
                 confidence=0.0,
                 model_used=settings.OLLAMA_MODEL
             )
+
+    async def chat_query_stream(self, chat_req: ChatQueryRequest):
+        """
+        Process natural language queries and stream the response as Server-Sent Events.
+        """
+        import json
+        import httpx
+        
+        # Determine category based on user role
+        category = None
+        if chat_req.user_role:
+            if chat_req.user_role.lower() == "agent":
+                category = DocumentCategory.AGENT
+            elif chat_req.user_role.lower() == "technician":
+                category = DocumentCategory.TECHNICIAN
+            elif chat_req.user_role.lower() == "admin":
+                category = None
+            else:
+                category = DocumentCategory.AGENT
+        
+        search_query = SearchQuery(
+            query=chat_req.query,
+            limit=chat_req.limit,
+            category=category,
+            tags=chat_req.tags
+        )
+        
+        matched_documents = await self.search_service.search(search_query, limit=chat_req.limit)
+        
+        if not matched_documents or matched_documents[0].similarity_score < 0.5:
+            yield f"data: {json.dumps({'type': 'content', 'data': f'No relevant documents found in the Knowledge Crystal for {chat_req.user_role}s. Please try a different query.'})}\n\n"
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+            return
+            
+        # Yield the sources immediately
+        sources_data = [doc.dict() for doc in matched_documents]
+        yield f"data: {json.dumps({'type': 'sources', 'data': sources_data})}\n\n"
+        
+        context = "\n\n".join([
+            f"Document: {doc.title}\nMission ID: {doc.mission_id or 'N/A'}\nCountry: {doc.country or 'N/A'}\nSummary: {doc.long_summary}\nRelevant Points:\n" + "\n".join([f"- {point}" for point in doc.matched_points])
+            for doc in matched_documents
+        ])
+        
+        role_context = ""
+        if category == DocumentCategory.AGENT:
+            role_context = "You are assisting a field agent who needs information about previous missions and operational resources.\nFocus on mission-related information, country-specific details, and operational guidance."
+        else:
+            role_context = "You are assisting a technician who needs technical documentation about HQ equipment and systems.\nFocus on technical specifications, setup procedures, maintenance guidelines, and troubleshooting information."
+        
+        rag_prompt = f"""{role_context}
+
+Available Information from Knowledge Crystal:
+{context}
+
+User Query: {chat_req.query}
+
+INSTRUCTIONS:
+1. Answer the User Query directly based ONLY on the Available Information.
+2. DO NOT use conversational filler (e.g. "Based on the provided documents...", "I'll attempt to provide...").
+3. DO NOT output internal monologues, rhetorical questions, or preamble.
+4. Go straight to the point. Start your response immediately with the factual answer.
+5. If the query cannot be fully answered, state exactly what is missing without apologizing.
+"""
+        
+        try:
+            async with httpx.AsyncClient() as client:
+                async with client.stream(
+                    "POST",
+                    f"{settings.OLLAMA_BASE_URL}/api/generate",
+                    json={
+                        "model": settings.OLLAMA_MODEL,
+                        "prompt": rag_prompt,
+                        "stream": True,
+                        "options": {
+                            "num_predict": 300,
+                            "temperature": 0.1
+                        }
+                    },
+                    timeout=120
+                ) as response:
+                    async for line in response.aiter_lines():
+                        if line:
+                            try:
+                                chunk = json.loads(line)
+                                if "response" in chunk:
+                                    token = chunk["response"]
+                                    yield f"data: {json.dumps({'type': 'content', 'data': token})}\n\n"
+                            except json.JSONDecodeError:
+                                pass
+                                
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+            
+        except Exception as e:
+            print(f"Error in chat stream: {e}")
+            yield f"data: {json.dumps({'type': 'error', 'data': str(e)})}\n\n"
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
 
 
 class KBDocumentService:

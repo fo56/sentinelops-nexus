@@ -107,9 +107,9 @@ class UserService:
             "last_login": None,
             "last_logout": None,
             "permissions": await cls._get_permissions_for_role(role),
-            # Phase 5: Score system for agents and technicians
+            # Score system for agents and technicians
             "score": 100,  # Default score for all rangers (agents)
-            "technician_score": 100,  # Default score for technicians (Phase 6)
+            "technician_score": 100,  # Default score for technicians
             "availability": "free" if role == "agent" else "unavailable",
             "active_missions": 0,
             "completed_missions": 0,
@@ -119,7 +119,7 @@ class UserService:
         result = await collection.insert_one(user_doc)
         user_doc["_id"] = result.inserted_id
         
-        logger.info(f"✅ Created new user: {email} with role: {role}")
+        logger.info(f" Created new user: {email} with role: {role}")
         return user_doc
     
     @classmethod
@@ -262,7 +262,7 @@ class UserService:
         
         try:
             await collection.insert_one(log_doc)
-            logger.info(f"📝 Logged identity event: {status} for user: {email}")
+            logger.info(f" Logged identity event: {status} for user: {email}")
             return True
         except Exception as e:
             logger.error(f"Error logging identity event: {e}")
@@ -365,3 +365,64 @@ class UserService:
             )
         
         return user
+
+import secrets
+import qrcode
+import base64
+from io import BytesIO
+from app.config.settings import settings
+
+class QRTokenService:
+    """Service for generating and managing QR tokens"""
+    
+    TOKEN_LENGTH = 32
+    
+    @staticmethod
+    def generate_qr_token() -> str:
+        return secrets.token_urlsafe(QRTokenService.TOKEN_LENGTH)
+    
+
+    @staticmethod
+    def generate_qr_code_image(data: str) -> bytes:
+        try:
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_L,
+                box_size=10,
+                border=4,
+            )
+            qr.add_data(data)
+            qr.make(fit=True)
+            img = qr.make_image(fill_color="black", back_color="white")
+            img_byte_arr = BytesIO()
+            img.save(img_byte_arr)
+            img_byte_arr.seek(0)
+            return img_byte_arr.getvalue()
+        except Exception as e:
+            logger.error(f"Error generating QR code: {e}")
+            raise
+    
+    @staticmethod
+    def generate_qr_code_base64(data: str) -> str:
+        try:
+            qr_bytes = QRTokenService.generate_qr_code_image(data)
+            qr_base64 = base64.b64encode(qr_bytes).decode('utf-8')
+            return f"data:image/png;base64,{qr_base64}"
+        except Exception as e:
+            logger.error(f"Error generating base64 QR code: {e}")
+            raise
+    
+    @staticmethod
+    def create_qr_login_url(qr_token: str, base_url: str = settings.FRONTEND_URL) -> str:
+        return f"{base_url}/auth/scan?token={qr_token}"
+
+def generate_qr_with_token(user_id: str, email: str) -> tuple[str, str, str]:
+    try:
+        qr_token = QRTokenService.generate_qr_token()
+        login_url = QRTokenService.create_qr_login_url(qr_token)
+        qr_image_base64 = QRTokenService.generate_qr_code_base64(login_url)
+        logger.info(f" Generated QR token for user: {email}")
+        return qr_token, qr_image_base64, login_url
+    except Exception as e:
+        logger.error(f"Error generating QR with token: {e}")
+        raise

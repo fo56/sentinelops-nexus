@@ -29,12 +29,12 @@ async def create_initial_admin():
         existing_admin = await collection.find_one({"role": "admin"})
         
         if existing_admin:
-            logger.warning("⚠️  Admin user already exists!")
+            logger.warning("  Admin user already exists!")
             logger.info(f"   Email: {existing_admin['email']}")
             return
         
         # Create admin user
-        logger.info("👑 Creating initial admin user...")
+        logger.info(" Creating initial admin user...")
         
         admin_user = await UserService.create_user(
             db=db,
@@ -48,17 +48,17 @@ async def create_initial_admin():
             health_issues=False
         )
         
-        logger.info("✅ Admin user created successfully!")
+        logger.info(" Admin user created successfully!")
         logger.info(f"   User ID: {admin_user['_id']}")
         logger.info(f"   Email: {admin_user['email']}")
         logger.info(f"   Full Name: {admin_user['full_name']}")
         logger.info(f"   Role: {admin_user['role']}")
-        logger.info("\n⚠️  IMPORTANT: Change the default password immediately!")
+        logger.info("\n  IMPORTANT: Change the default password immediately!")
         logger.info(f"   Email: {settings.DEFAULT_ADMIN_EMAIL}")
         logger.info(f"   Password: {settings.DEFAULT_ADMIN_PASSWORD}")
         
     except Exception as e:
-        logger.error(f"❌ Error creating admin: {e}")
+        logger.error(f" Error creating admin: {e}")
     
     finally:
         # Close connection

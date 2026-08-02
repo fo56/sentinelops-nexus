@@ -1,5 +1,5 @@
 """
-WebSocket Connection Manager - Phase 5
+WebSocket Connection Manager
 Real-time updates for mission board using WebSocket
 """
 from typing import List, Dict, Optional
@@ -45,7 +45,7 @@ class ConnectionManager:
         self.active_connections[client_id] = websocket
         self.client_info[client_id] = user_info
         
-        logger.info(f"✅ WebSocket connected: {client_id} (User: {user_info.get('email')})")
+        logger.info(f" WebSocket connected: {client_id} (User: {user_info.get('email')})")
         
         # Send welcome message
         await self.send_personal_message(
@@ -71,7 +71,7 @@ class ConnectionManager:
         if client_id in self.client_info:
             user_info = self.client_info[client_id]
             del self.client_info[client_id]
-            logger.info(f"❌ WebSocket disconnected: {client_id} (User: {user_info.get('email')})")
+            logger.info(f" WebSocket disconnected: {client_id} (User: {user_info.get('email')})")
         
         # Remove from all mission rooms
         for mission_id in list(self.mission_rooms.keys()):
@@ -128,7 +128,7 @@ class ConnectionManager:
         
         if client_id not in self.mission_rooms[mission_id]:
             self.mission_rooms[mission_id].append(client_id)
-            logger.info(f"👥 Client {client_id} joined mission room: {mission_id}")
+            logger.info(f" Client {client_id} joined mission room: {mission_id}")
 
     async def leave_mission_room(self, client_id: str, mission_id: str):
         """
@@ -144,68 +144,7 @@ class ConnectionManager:
             if not self.mission_rooms[mission_id]:
                 del self.mission_rooms[mission_id]
             
-            logger.info(f"👋 Client {client_id} left mission room: {mission_id}")
-
-    async def broadcast_to_mission_room(self, mission_id: str, message: dict):
-        """
-        Broadcast message to all clients in a specific mission room
-        
-        Args:
-            mission_id: Target mission room
-            message: Message data to send
-        """
-        if mission_id not in self.mission_rooms:
-            logger.debug(f"No clients in mission room: {mission_id}")
-            return
-
-        disconnected_clients = []
-        
-        for client_id in self.mission_rooms[mission_id]:
-            if client_id in self.active_connections:
-                try:
-                    await self.active_connections[client_id].send_json(message)
-                except WebSocketDisconnect:
-                    disconnected_clients.append(client_id)
-                except Exception as e:
-                    logger.error(f"Error sending to {client_id} in mission room {mission_id}: {e}")
-                    disconnected_clients.append(client_id)
-        
-        # Clean up disconnected clients
-        for client_id in disconnected_clients:
-            self.disconnect(client_id)
-
-    async def notify_mission_update(
-        self,
-        mission_id: str,
-        event_type: str,
-        data: dict,
-        user: str
-    ):
-        """
-        Notify all relevant clients about a mission update
-        
-        Args:
-            mission_id: Mission ID that was updated
-            event_type: Type of event (mission_created, mission_assigned, mission_moved, etc.)
-            data: Event data
-            user: User who triggered the event
-        """
-        message = {
-            "type": event_type,
-            "mission_id": mission_id,
-            "data": data,
-            "user": user,
-            "timestamp": datetime.utcnow().isoformat()
-        }
-        
-        # Broadcast to all clients (for admin dashboard)
-        await self.broadcast(message)
-        
-        # Also send to mission-specific room if exists
-        if mission_id in self.mission_rooms:
-            await self.broadcast_to_mission_room(mission_id, message)
-        
-        logger.info(f"📢 Broadcast mission update: {event_type} for mission {mission_id}")
+            logger.info(f" Client {client_id} left mission room: {mission_id}")
 
     def get_active_connections_count(self) -> int:
         """Get count of active WebSocket connections"""
@@ -221,8 +160,3 @@ class ConnectionManager:
 
 # Global connection manager instance
 manager = ConnectionManager()
-
-
-def get_connection_manager() -> ConnectionManager:
-    """Get the global connection manager instance"""
-    return manager

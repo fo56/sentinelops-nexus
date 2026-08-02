@@ -34,7 +34,7 @@ class VectorStoreManager:
             metadata={"hnsw:space": "cosine"}
         )
         
-        print(f"✅ Vector Store initialized at {persist_directory}")
+        print(f" Vector Store initialized at {persist_directory}")
     
     def add_chunks(
         self,
@@ -119,7 +119,7 @@ class VectorStoreManager:
         """
         try:
             # Debug: print filters being applied
-            print(f"🔍 Vector Store Search - Applying filters: {filters}")
+            print(f" Vector Store Search - Applying filters: {filters}")
             
             # Query ChromaDB with filters
             query_params = {
@@ -141,7 +141,7 @@ class VectorStoreManager:
                 metadatas = results["metadatas"][0] if results.get("metadatas") else []
                 ids = results["ids"][0] if results.get("ids") else []
                 
-                print(f"📊 Found {len(documents)} results from ChromaDB")
+                print(f" Found {len(documents)} results from ChromaDB")
                 
                 for i, doc in enumerate(documents):
                     # Convert distance to similarity score (cosine distance to similarity)
@@ -161,7 +161,7 @@ class VectorStoreManager:
             return formatted_results
         
         except Exception as e:
-            print(f"❌ Search error: {e}")
+            print(f" Search error: {e}")
             return []
     
     def delete_chunks(self, page_id: str) -> Dict[str, Any]:
@@ -192,51 +192,6 @@ class VectorStoreManager:
         except Exception as e:
             return {"success": False, "error": str(e)}
     
-    def get_page_chunks(self, page_id: str) -> Dict[str, Any]:
-        """
-        Get all chunks for a specific page
-        
-        Args:
-            page_id: ID of the page
-        
-        Returns:
-            List of chunks with metadata
-        """
-        try:
-            results = self.collection.get(
-                where={"page_id": page_id}
-            )
-            
-            chunks = []
-            if results and results.get("documents"):
-                for i, doc in enumerate(results["documents"]):
-                    chunks.append({
-                        "chunk_id": results["ids"][i],
-                        "content": doc,
-                        "metadata": results["metadatas"][i]
-                    })
-            
-            return {
-                "page_id": page_id,
-                "chunk_count": len(chunks),
-                "chunks": chunks
-            }
-        
-        except Exception as e:
-            return {"success": False, "error": str(e)}
-    
-    def clear_collection(self) -> Dict[str, Any]:
-        """Clear all data from collection (use with caution)"""
-        try:
-            # Get all IDs
-            results = self.collection.get()
-            if results and results.get("ids"):
-                self.collection.delete(ids=results["ids"])
-            
-            return {"success": True, "message": "Collection cleared"}
-        except Exception as e:
-            return {"success": False, "error": str(e)}
-
 
 # Global vector store instance
 vector_store: Optional[VectorStoreManager] = None

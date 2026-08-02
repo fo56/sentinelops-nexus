@@ -1,6 +1,6 @@
 """
 Analytics Routes
-Phase 3 API Endpoints
+Analytics API Endpoints
 """
 
 import logging

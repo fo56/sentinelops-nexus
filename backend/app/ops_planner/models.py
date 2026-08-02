@@ -1,5 +1,5 @@
 """
-Ops Planner Models - Phase 5 Complete
+Ops Planner Models
 Mission Board with Kanban, Agent Assignment, Scoring System
 """
 from datetime import datetime

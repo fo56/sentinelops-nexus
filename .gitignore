@@ -158,3 +158,6 @@ ehthumbs.db
 .next
 out/
 test_documents/
+.agents/
+
+pyrightconfig.json

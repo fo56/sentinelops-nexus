@@ -67,28 +67,3 @@ def decode_access_token(token: str) -> Dict:
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-
-def get_token_expiry() -> datetime:
-    """
-    Get token expiration datetime
-    
-    Returns:
-        Datetime object representing token expiry
-    """
-    return datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-
-
-def verify_token(token: str) -> Dict:
-    """
-    Verify and decode JWT token (alias for decode_access_token)
-    
-    Args:
-        token: JWT token string
-        
-    Returns:
-        Decoded token payload
-        
-    Raises:
-        HTTPException: If token is invalid or expired
-    """
-    return decode_access_token(token)

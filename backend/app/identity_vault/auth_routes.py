@@ -17,8 +17,7 @@ from .models import (
     QRTokenResponse, UserMe, IdentityLogResponse,
     RangerLoginRequest, QRLoginRequest
 )
-from .services import UserService
-from .qr_service import generate_qr_with_token
+from .services import UserService, generate_qr_with_token
 
 logger = logging.getLogger(__name__)
 
@@ -44,22 +43,17 @@ def get_client_ip(request: Request) -> str:
 @router.post("/login", response_model=TokenResponse)
 async def login(
     request: LoginRequest,
+    http_request: Request,
     user_agent: Optional[str] = Header(None),
     db = Depends(get_database)
 ):
     """
-    Login with email and password
-    
-    Args:
-        request: LoginRequest with email and password
-        user_agent: User agent from request header
-        db: MongoDB database
-        
-    Returns:
-        JWT token and user information
+    Unified Login endpoint for all users (Admins, Rangers, Technicians)
     """
     try:
-
+        # Get client IP and device info
+        client_ip = get_client_ip(http_request)
+        device_info = user_agent or "Unknown Device"
         
         # Authenticate user
         user = await UserService.authenticate_user(db, request.email, request.password)
@@ -71,12 +65,19 @@ async def login(
                 user_id="unknown",
                 email=request.email,
                 status="failed_attempt",
-                device_info=user_agent,
+                device_info=device_info,
+                ip_address=client_ip,
                 reason="Invalid email or password"
             )
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid email or password"
+            )
+            
+        if user.get("status") != "active":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User account is not active"
             )
         
         # Update last login
@@ -88,17 +89,23 @@ async def login(
             user_id=str(user["_id"]),
             email=user["email"],
             status="logged_in",
-            device_info=user_agent
+            device_info=device_info,
+            ip_address=client_ip,
+            reason="Password login"
         )
         
-        # Create JWT token
+        # Create JWT token with role information
         access_token_expires = timedelta(minutes=60)
         access_token = create_access_token(
-            data={"sub": user["email"]},
+            data={
+                "sub": user["email"],
+                "role": user["role"],
+                "user_id": str(user["_id"])
+            },
             expires_delta=access_token_expires
         )
         
-        logger.info(f"✅ User logged in: {request.email}")
+        logger.info(f" User logged in: {request.email} (Role: {user['role']})")
         
         return TokenResponse(
             access_token=access_token,
@@ -113,137 +120,6 @@ async def login(
         raise
     except Exception as e:
         logger.error(f"Login error: {str(e)}", exc_info=True)
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Login failed: {str(e)}"
-        )
-
-
-@router.post("/ranger/login", response_model=TokenResponse)
-async def ranger_login(
-    request: RangerLoginRequest,
-    http_request: Request,
-    user_agent: Optional[str] = Header(None),
-    db = Depends(get_database)
-):
-    """
-    ⭐ RANGER LOGIN - Phase 2 Implementation
-    Ranger login with email and password (after admin has created them)
-    
-    This endpoint allows rangers (technicians/agents) to login by providing:
-    - Email address
-    - Password
-    
-    The system verifies:
-    ✔ User exists in the system
-    ✔ Password is correct
-    ✔ User role is technician or agent (not admin)
-    ✔ User account is active
-    
-    On successful login:
-    - JWT token is generated
-    - Session is created
-    - Login is logged with device/IP info
-    - Role and permissions are attached to the token
-    
-    Args:
-        request: RangerLoginRequest with email and password
-        http_request: HTTP request for IP extraction
-        user_agent: User agent from request header
-        db: MongoDB database
-        
-    Returns:
-        JWT token, user_id, email, full_name, and role (technician/agent)
-        
-    Raises:
-        401: Invalid email or password
-        403: User account is not active or not a ranger (admin cannot use this endpoint)
-    """
-    try:
-        # Get client IP and device info
-        client_ip = get_client_ip(http_request)
-        device_info = user_agent or "Unknown Device"
-        
-        # Authenticate user
-        user = await UserService.authenticate_user(db, request.email, request.password)
-        
-        if not user:
-            # Log failed attempt with full details
-            await UserService.log_identity_event(
-                db,
-                user_id="unknown",
-                email=request.email,
-                status="failed_attempt",
-                device_info=device_info,
-                ip_address=client_ip,
-                reason="Invalid email or password"
-            )
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid email or password"
-            )
-        
-        # Check if user is a ranger (technician or agent, not admin)
-        if user["role"] == "admin":
-            await UserService.log_identity_event(
-                db,
-                user_id=str(user["_id"]),
-                email=user["email"],
-                status="failed_attempt",
-                device_info=device_info,
-                ip_address=client_ip,
-                reason="Admin attempted to use ranger login endpoint"
-            )
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Admin accounts cannot login through ranger endpoint. Use admin login."
-            )
-        
-        # Update last login
-        await UserService.update_last_login(db, str(user["_id"]))
-        
-        # Log successful login - mark as ranger login
-        await UserService.log_identity_event(
-            db,
-            user_id=str(user["_id"]),
-            email=user["email"],
-            status="logged_in",
-            device_info=device_info,
-            ip_address=client_ip,
-            reason="Ranger login with email and password"
-        )
-        
-        # Create JWT token with role information
-        access_token_expires = timedelta(minutes=60)
-        access_token = create_access_token(
-            data={
-                "sub": user["email"],
-                "role": user["role"],
-                "user_id": str(user["_id"])
-            },
-            expires_delta=access_token_expires
-        )
-        
-        logger.info(
-            f"✅ 🟣 Ranger logged in: {request.email} (Role: {user['role']}) | "
-            f"IP: {client_ip} | Device: {device_info}"
-        )
-        
-        return TokenResponse(
-            access_token=access_token,
-            token_type="bearer",
-            user_id=str(user["_id"]),
-            email=user["email"],
-            full_name=user["full_name"],
-            role=user["role"]
-        )
-    
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Ranger login error: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Login failed: {str(e)}"
@@ -306,7 +182,7 @@ async def scan_qr(
             expires_delta=access_token_expires
         )
         
-        logger.info(f"✅ User logged in via QR: {user['email']}")
+        logger.info(f" User logged in via QR: {user['email']}")
         
         return TokenResponse(
             access_token=access_token,
@@ -335,12 +211,12 @@ async def validate_qr_login(
     db = Depends(get_database)
 ):
     """
-    ⭐ VALIDATE QR TOKEN FOR LOGIN
+     VALIDATE QR TOKEN FOR LOGIN
     Validates QR token and checks:
-    ✔ QR token is valid and exists
-    ✔ QR token has not expired
-    ✔ User account is still active
-    ✔ User role is valid
+     QR token is valid and exists
+     QR token has not expired
+     User account is still active
+     User role is valid
     
     This endpoint is called before the actual login to verify the QR code
     can be used for authentication.
@@ -412,7 +288,7 @@ async def validate_qr_login(
         )
         
         logger.info(
-            f"✅ QR token validated for user: {user['email']} | "
+            f" QR token validated for user: {user['email']} | "
             f"IP: {client_ip} | Expires in: {expires_in_minutes} minutes"
         )
         

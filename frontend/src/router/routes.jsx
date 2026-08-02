@@ -9,11 +9,9 @@ import AdminDashboard from '../pages/AdminDashboard';
 import Users from '../pages/Users';
 import CreateRanger from '../pages/CreateRanger';
 
-// Phase 1 Pages
+// Knowledge Crystal Pages
 import KnowledgeCrystal from '../pages/KnowledgeCrystal';
 
-// Phase 3 & 4 Pages
-import NotificationCenter from '../pages/NotificationCenter';
 
 // Ranger Module Pages
 import OpsPlanner from '../pages/OpsPlanner';
@@ -101,7 +99,7 @@ export const routes = [
     ),
   },
 
-  // Phase 1 Routes
+  // Knowledge Crystal Routes
   {
     path: '/knowledge',
     element: (
@@ -117,8 +115,6 @@ export const routes = [
   { path: '/ranger/ops-planner', element: <ProtectedRoute><OpsPlanner /></ProtectedRoute> },
   { path: '/ranger/facility-ops', element: <ProtectedRoute><FacilityOps /></ProtectedRoute> },
 
-  // Notifications
-  { path: '/notifications', element: <ProtectedRoute><NotificationCenter /></ProtectedRoute> },
 
   // Default Routes
   { path: '/', element: <Navigate to="/login" replace /> },

@@ -64,7 +64,7 @@ async def create_admin():
         print(f"   ID: {result.inserted_id}")
         
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f" Error: {e}")
     finally:
         client.close()
 

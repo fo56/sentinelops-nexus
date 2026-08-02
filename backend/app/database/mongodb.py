@@ -27,15 +27,15 @@ async def connect_to_mongo():
         
         # Test connection
         await db.client.server_info()
-        logger.info("✅ Successfully connected to MongoDB")
-        logger.info(f"📊 Database: {settings.MONGODB_DB_NAME}")
+        logger.info(" Successfully connected to MongoDB")
+        logger.info(f" Database: {settings.MONGODB_DB_NAME}")
         
         # Create indexes
         await create_indexes()
         
     except Exception as e:
-        logger.error(f"❌ Failed to connect to MongoDB: {e}")
-        logger.error("💡 Make sure MongoDB service is running: net start MongoDB")
+        logger.error(f" Failed to connect to MongoDB: {e}")
+        logger.error(" Make sure MongoDB service is running: net start MongoDB")
         raise
 
 
@@ -43,7 +43,7 @@ async def close_mongo_connection():
     """Close MongoDB connection"""
     if db.client:
         db.client.close()
-        logger.info("🔴 MongoDB connection closed")
+        logger.info(" MongoDB connection closed")
 
 
 async def create_indexes():

@@ -25,11 +25,11 @@ class EmbeddingService:
         try:
             response = requests.get(f"{self.base_url}/api/tags", timeout=5)
             if response.status_code == 200:
-                print(f"✅ Embedding Service initialized with Ollama ({self.model})")
+                print(f" Embedding Service initialized with Ollama ({self.model})")
             else:
                 raise ConnectionError("Cannot connect to Ollama")
         except Exception as e:
-            print(f"❌ Ollama not running. Start it with: ollama serve")
+            print(f" Ollama not running. Start it with: ollama serve")
             raise ConnectionError(f"Ollama connection failed: {e}")
     
     def chunk_text(
@@ -121,13 +121,13 @@ class EmbeddingService:
                     embedding = response.json()["embedding"]
                     embeddings.append(embedding)
                 else:
-                    print(f"❌ Ollama embedding error: {response.status_code}")
+                    print(f" Ollama embedding error: {response.status_code}")
                     raise Exception(f"Ollama API returned status {response.status_code}")
             
             return embeddings
         
         except Exception as e:
-            print(f"❌ Error generating embeddings: {e}")
+            print(f" Error generating embeddings: {e}")
             raise
     
     def embed_query(self, query: str) -> List[float]:
@@ -156,11 +156,11 @@ class EmbeddingService:
             if response.status_code == 200:
                 return response.json()["embedding"]
             else:
-                print(f"❌ Ollama embedding error: {response.status_code}")
+                print(f" Ollama embedding error: {response.status_code}")
                 raise Exception(f"Ollama API returned status {response.status_code}")
         
         except Exception as e:
-            print(f"❌ Error embedding query: {e}")
+            print(f" Error embedding query: {e}")
             raise
     
     def process_content(

@@ -5,9 +5,9 @@ const NavLink = forwardRef(
   (
     {
       to,
-      style,
-      activeStyle,
-      className,
+      variant = 'default',
+      icon: Icon,
+      className = '',
       children,
       ...props
     },
@@ -16,49 +16,23 @@ const NavLink = forwardRef(
     const location = useLocation();
     const isActive = location.pathname === to;
 
-    const baseStyle = {
-      textDecoration: 'none',
-      color: 'var(--text-primary)',
-      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif",
-      fontSize: '0.875rem',
-      padding: '0.5rem 1rem',
-      borderRadius: '0.375rem',
-      transition: 'all 0.2s ease',
-      cursor: 'pointer',
-      display: 'inline-block',
-      ...style,
-    };
+    const variantClass = {
+      default: 'nav-link-default',
+      underline: 'nav-link-underline',
+      scale: 'nav-link-scale',
+    }[variant] || 'nav-link-default';
 
-    const finalStyle = isActive
-      ? {
-          ...baseStyle,
-          backgroundColor: 'rgba(41, 163, 153, 0.08)',
-          borderColor: 'rgba(41, 163, 153, 0.2)',
-          color: 'var(--primary)',
-          ...activeStyle,
-        }
-      : baseStyle;
+    const classes = `nav-link ${variantClass} ${isActive ? 'active' : ''} ${className}`;
 
     return (
       <RouterNavLink
         ref={ref}
         to={to}
-        style={finalStyle}
-        onMouseEnter={(e) => {
-          if (!isActive) {
-            e.currentTarget.style.backgroundColor = 'rgba(41, 163, 153, 0.04)';
-            e.currentTarget.style.color = 'var(--primary)';
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (!isActive) {
-            e.currentTarget.style.backgroundColor = 'transparent';
-            e.currentTarget.style.color = 'var(--text-primary)';
-          }
-        }}
+        className={classes.trim()}
         {...props}
       >
-        {children}
+        {Icon && <Icon size={16} strokeWidth={variant === 'scale' ? 2.5 : 2} />}
+        <span>{children}</span>
       </RouterNavLink>
     );
   }

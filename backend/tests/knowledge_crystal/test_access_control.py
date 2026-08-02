@@ -20,7 +20,7 @@ async def test_access_control():
     """Test access control only"""
     
     # Connect to MongoDB
-    print("🔌 Connecting to MongoDB...")
+    print(" Connecting to MongoDB...")
     client = AsyncIOMotorClient(settings.MONGODB_URL)
     db = client[settings.MONGODB_DB_NAME]
     
@@ -28,7 +28,7 @@ async def test_access_control():
         chat_service = KBChatService(db)
         
         # Test 1: Agent trying to access Technician docs
-        print("\n🔒 Test 1: Agent trying to access Technician documents...")
+        print("\n Test 1: Agent trying to access Technician documents...")
         
         agent_tech_query = ChatQueryRequest(
             query="How do I setup CCTV cameras?",
@@ -42,15 +42,15 @@ async def test_access_control():
         print(f"   Matched Documents: {len(response.matched_documents)}")
         
         if len(response.matched_documents) == 0:
-            print(f"   ✅ PASS: Agent cannot see technician docs")
+            print(f"    PASS: Agent cannot see technician docs")
         else:
-            print(f"   ❌ FAIL: Agent should not see technician docs")
+            print(f"    FAIL: Agent should not see technician docs")
             print(f"   Found documents:")
             for doc in response.matched_documents:
                 print(f"      - '{doc.title}' (Category: {doc.category})")
         
         # Test 2: Technician trying to access Agent docs
-        print("\n🔒 Test 2: Technician trying to access Agent documents...")
+        print("\n Test 2: Technician trying to access Agent documents...")
         
         tech_agent_query = ChatQueryRequest(
             query="What missions were conducted in Germany?",
@@ -64,15 +64,15 @@ async def test_access_control():
         print(f"   Matched Documents: {len(response.matched_documents)}")
         
         if len(response.matched_documents) == 0:
-            print(f"   ✅ PASS: Technician cannot see agent docs")
+            print(f"    PASS: Technician cannot see agent docs")
         else:
-            print(f"   ❌ FAIL: Technician should not see agent docs")
+            print(f"    FAIL: Technician should not see agent docs")
             print(f"   Found documents:")
             for doc in response.matched_documents:
                 print(f"      - '{doc.title}' (Category: {doc.category})")
         
         # Test 3: Agent querying Agent docs (should work)
-        print("\n🔒 Test 3: Agent accessing Agent documents...")
+        print("\n Test 3: Agent accessing Agent documents...")
         
         agent_query = ChatQueryRequest(
             query="What missions were conducted in Germany?",
@@ -86,14 +86,14 @@ async def test_access_control():
         print(f"   Matched Documents: {len(response.matched_documents)}")
         
         if len(response.matched_documents) > 0:
-            print(f"   ✅ PASS: Agent can access agent docs")
+            print(f"    PASS: Agent can access agent docs")
             for doc in response.matched_documents:
                 print(f"      - '{doc.title}' (Category: {doc.category})")
         else:
-            print(f"   ⚠️  WARNING: No agent documents found (might be empty DB)")
+            print(f"     WARNING: No agent documents found (might be empty DB)")
         
         # Test 4: Technician querying Technician docs (should work)
-        print("\n🔒 Test 4: Technician accessing Technician documents...")
+        print("\n Test 4: Technician accessing Technician documents...")
         
         tech_query = ChatQueryRequest(
             query="How do I troubleshoot CCTV connection issues?",
@@ -107,26 +107,26 @@ async def test_access_control():
         print(f"   Matched Documents: {len(response.matched_documents)}")
         
         if len(response.matched_documents) > 0:
-            print(f"   ✅ PASS: Technician can access technician docs")
+            print(f"    PASS: Technician can access technician docs")
             for doc in response.matched_documents:
                 print(f"      - '{doc.title}' (Category: {doc.category})")
         else:
-            print(f"   ⚠️  WARNING: No technician documents found (might be empty DB)")
+            print(f"     WARNING: No technician documents found (might be empty DB)")
         
         print("\n" + "="*70)
         print("ACCESS CONTROL TEST COMPLETED")
         print("="*70)
         
     except Exception as e:
-        print(f"\n❌ Test failed with error: {e}")
+        print(f"\n Test failed with error: {e}")
         import traceback
         traceback.print_exc()
     
     finally:
         client.close()
-        print("\n🔌 MongoDB connection closed")
+        print("\n MongoDB connection closed")
 
 
 if __name__ == "__main__":
-    print("🚀 Starting Access Control Tests...\n")
+    print(" Starting Access Control Tests...\n")
     asyncio.run(test_access_control())

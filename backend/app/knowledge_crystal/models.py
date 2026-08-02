@@ -102,7 +102,7 @@ class SearchResult(BaseModel):
 class ChatQueryRequest(BaseModel):
     """Schema for NLP-based chat queries"""
     query: str = Field(..., min_length=5, description="Natural language query")
-    user_role: str = Field(..., description="User role: agent or technician")
+    user_role: Optional[str] = Field(default=None, description="User role: agent or technician (inferred by backend)")
     limit: int = Field(default=5, ge=1, le=20, description="Max results to retrieve")
     tags: Optional[List[str]] = None
 

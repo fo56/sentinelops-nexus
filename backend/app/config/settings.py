@@ -7,20 +7,20 @@ class Settings(BaseSettings):
     model_config = ConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
     
     # App Settings
-    APP_NAME: str = "Doc-Sage Intel Console"
+    APP_NAME: str = "SentinelOps Nexus API"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = True
     
     # MongoDB Settings
-    MONGODB_URL: str = "mongodb://localhost:27017"
+    MONGODB_URL: str = "mongodb://127.0.0.1:27017"
     MONGODB_DB_NAME: str = "sentinel_ops_nexus"
     
     # AI Settings - Using Ollama
     AI_PROVIDER: str = "ollama"
     
     # Ollama Settings
-    OLLAMA_BASE_URL: str = "http://localhost:11434"
-    OLLAMA_MODEL: str = "llama3.2:3b"  # or "llama3.2:1b", "llama3:8b"
+    OLLAMA_BASE_URL: str = "http://127.0.0.1:11434"
+    OLLAMA_MODEL: str = "llama3.2:1b"  # Much faster on CPU than 3b
     OLLAMA_EMBEDDING_MODEL: str = "nomic-embed-text"
     
     # File Storage Settings
@@ -36,9 +36,6 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "your-super-secret-key-change-this-in-production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
-    
-    # QR Token Settings
-    QR_TOKEN_LENGTH: int = 32
     
     # Default Admin Credentials (for initial setup)
     DEFAULT_ADMIN_USERNAME: str = "red_ranger"

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card } from '../components/ui/Card';
 import DashboardLayout from '../components/DashboardLayout';
 import { useAuth } from '../hooks/useAuth';
-import apiClient from '../services/api';
+import apiClient, { facilityOpsService } from '../services/api';
 import { Wrench, CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react';
 
 export default function TechnicianDashboard() {
@@ -29,8 +29,8 @@ export default function TechnicianDashboard() {
       setError(null);
 
       // Fetch issues assigned to this technician
-      const activeIssues = await apiClient.get('/facility-ops/issues');
-      const completedIssuesData = await apiClient.get('/facility-ops/issues/solved');
+      const activeIssues = await facilityOpsService.getMyIssues();
+      const completedIssuesData = await facilityOpsService.getCompletedIssues();
 
       setMyIssues(Array.isArray(activeIssues) ? activeIssues : []);
       setCompletedIssues(Array.isArray(completedIssuesData) ? completedIssuesData : []);
@@ -46,7 +46,7 @@ export default function TechnicianDashboard() {
 
   const fetchTechnicianData = async () => {
     try {
-      const stats = await apiClient.get('/api/analytics/ranger-stats');
+      const stats = await facilityOpsService.getPerformanceStats();
       setTechnicianScore(stats.performance_score || 100);
     } catch (err) {
       console.error('Error fetching technician data:', err);
@@ -60,11 +60,12 @@ export default function TechnicianDashboard() {
     }
 
     try {
-      await apiClient.post(`/facility-ops/issues/${selectedIssue._id}/outcome`, {
-        outcome: outcome,
-        notes: notes,
-        resolution_details: resolutionDetails || null
-      });
+      await facilityOpsService.submitOutcome(
+        selectedIssue._id,
+        outcome,
+        notes,
+        resolutionDetails || null
+      );
 
       await fetchMyIssues();
       await fetchTechnicianData();
@@ -395,17 +396,7 @@ export default function TechnicianDashboard() {
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       rows="4"
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        backgroundColor: '#202835',
-                        border: '1px solid #2a3040',
-                        borderRadius: '0.375rem',
-                        color: '#ffffff',
-                        fontSize: '0.9rem',
-                        boxSizing: 'border-box',
-                        fontFamily: 'inherit',
-                      }}
+                      className="input-cyber"
                     />
                   </div>
 
@@ -419,17 +410,7 @@ export default function TechnicianDashboard() {
                         value={resolutionDetails}
                         onChange={(e) => setResolutionDetails(e.target.value)}
                         rows="3"
-                        style={{
-                          width: '100%',
-                          padding: '0.75rem',
-                          backgroundColor: '#202835',
-                          border: '1px solid #2a3040',
-                          borderRadius: '0.375rem',
-                          color: '#ffffff',
-                          fontSize: '0.9rem',
-                          boxSizing: 'border-box',
-                          fontFamily: 'inherit',
-                        }}
+                        className="input-cyber"
                       />
                     </div>
                   )}

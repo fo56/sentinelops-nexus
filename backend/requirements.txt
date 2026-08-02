@@ -35,9 +35,9 @@ requests  # For Ollama API calls
 pyotp>=2.9.0
 # For biometric: libfaceapi, deepface, etc. (integrate as needed)
 
-# Phase 4: Notifications & WebSocket
+# Real-time WebSocket Updates
 websockets
-aiosmtplib
+
 
 # Data Export
 openpyxl

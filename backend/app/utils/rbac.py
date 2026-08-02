@@ -93,21 +93,6 @@ class PermissionChecker:
         else:
             return any(PermissionChecker.check_permission(user, p) for p in permissions)
     
-    @staticmethod
-    def get_user_permissions(user: dict) -> dict:
-        """
-        Get all permissions for a user
-        
-        Args:
-            user: User document
-            
-        Returns:
-            Dictionary of permissions
-        """
-        user_role = user.get("role")
-        return PermissionChecker.PERMISSION_MAP.get(user_role, {})
-
-
 def require_permissions(permissions: List[str], require_all: bool = True):
     """
     Decorator to require specific permissions for an endpoint
@@ -208,77 +193,6 @@ def require_ranger_role():
     return ranger_role_checker
 
 
-class RBACMiddleware:
-    """
-    RBAC Middleware for automatic permission checking
-    Logs access attempts and enforces role-based restrictions
-    """
-    
-    @staticmethod
-    async def log_access_attempt(user: dict, endpoint: str, method: str, allowed: bool):
-        """
-        Log access attempt for audit purposes
-        
-        Args:
-            user: User attempting access
-            endpoint: API endpoint
-            method: HTTP method
-            allowed: Whether access was allowed
-        """
-        access_status = "✅ ALLOWED" if allowed else "❌ DENIED"
-        logger.info(
-            f"{access_status} | User: {user.get('email')} | Role: {user.get('role')} | "
-            f"Method: {method} | Endpoint: {endpoint}"
-        )
-    
-    @staticmethod
-    async def check_endpoint_access(user: dict, endpoint: str, method: str) -> bool:
-        """
-        Check if user can access endpoint based on role
-        
-        Args:
-            user: User attempting access
-            endpoint: API endpoint path
-            method: HTTP method
-            
-        Returns:
-            True if access is allowed
-        """
-        user_role = user.get("role")
-        
-        # Define role-based endpoint access
-        role_access_map = {
-            "admin": [
-                "/admin/",
-                "/auth/",
-                "/doc-sage/",
-                "/knowledge-crystal/",
-                "/facility-ops/"
-            ],
-            "technician": [
-                "/auth/",
-                "/doc-sage/",
-                "/knowledge-crystal/",
-                "/facility-ops/",
-                "/missions/"
-            ],
-            "agent": [
-                "/auth/",
-                "/doc-sage/",
-                "/knowledge-crystal/",
-                "/missions/"
-            ]
-        }
-        
-        # Get allowed endpoints for this role
-        allowed_endpoints = role_access_map.get(user_role, [])
-        
-        # Check if endpoint is allowed
-        is_allowed = any(endpoint.startswith(allowed) for allowed in allowed_endpoints)
-        
-        return is_allowed
-
-
 # Export commonly used functions
 __all__ = [
     'PermissionChecker',
@@ -286,6 +200,5 @@ __all__ = [
     'require_role',
     'require_ranger_role',
     'check_ranger_access',
-    'RBACMiddleware',
     'PermissionLevel'
 ]

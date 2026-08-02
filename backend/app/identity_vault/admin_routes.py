@@ -15,8 +15,7 @@ from .models import (
     AdminCreateUserRequest, AdminCreateUserResponse,
     UserResponse, IdentityLogResponse
 )
-from .services import UserService
-from .qr_service import generate_qr_with_token
+from .services import UserService, generate_qr_with_token
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +29,7 @@ async def create_ranger_user(
     db = Depends(get_database)
 ):
     """
-    ⭐ ADMIN CREATE RANGER USER - Phase 2 Implementation
+     ADMIN CREATE RANGER USER
     Admin endpoint to create a new ranger user (Technician or Agent)
     
     Process:
@@ -101,7 +100,7 @@ async def create_ranger_user(
         
         # Log admin action
         logger.info(
-            f"👤 Admin {current_admin['email']} created new ranger: {request.email} "
+            f" Admin {current_admin['email']} created new ranger: {request.email} "
             f"(Role: {request.role.value}) | QR expires: {qr_token_expires_at}"
         )
         
@@ -112,7 +111,7 @@ async def create_ranger_user(
             role=user["role"],
             qr_token=qr_token,
             qr_image_url=qr_image,
-            message=f"✅ Successfully created ranger: {request.full_name} | "
+            message=f" Successfully created ranger: {request.full_name} | "
                     f"QR code valid for 30 days | Rangers can now login with email/password or QR"
         )
     
@@ -318,7 +317,7 @@ async def update_user_status(
                 detail="User not found"
             )
         
-        action_emoji = "✅" if new_status == "active" else "🚫"
+        action_emoji = "" if new_status == "active" else ""
         action_word = "activated" if new_status == "active" else "suspended"
         
         logger.info(f"{action_emoji} Admin {current_admin['email']} {action_word} user: {user_id}")
@@ -366,7 +365,7 @@ async def suspend_user(
                 detail="User not found"
             )
         
-        logger.info(f"🚫 Admin {current_admin['email']} suspended user: {user_id}")
+        logger.info(f" Admin {current_admin['email']} suspended user: {user_id}")
         
         return {"message": f"User {user_id} has been suspended"}
     
@@ -411,7 +410,7 @@ async def activate_user(
                 detail="User not found"
             )
         
-        logger.info(f"✅ Admin {current_admin['email']} activated user: {user_id}")
+        logger.info(f" Admin {current_admin['email']} activated user: {user_id}")
         
         return {"message": f"User {user_id} has been activated"}
     
@@ -471,7 +470,7 @@ async def delete_user(
             )
         
         logger.info(
-            f"🗑️  Admin {current_admin['email']} deleted user: {user.get('email', user_id)} "
+            f"  Admin {current_admin['email']} deleted user: {user.get('email', user_id)} "
             f"(Role: {user.get('role', 'unknown')})"
         )
         

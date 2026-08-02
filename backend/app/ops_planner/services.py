@@ -1,5 +1,5 @@
 """
-Ops Planner Services - Phase 5 Complete
+Ops Planner Services
 Mission Management, Agent Assignment, Scoring, Document Upload
 """
 from datetime import datetime
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 class MissionService:
-    """Mission management service for Phase 5"""
+    """Mission management service"""
 
     def __init__(self, db: AsyncIOMotorDatabase):
         self.db = db
@@ -81,7 +81,7 @@ class MissionService:
             user_name=admin.get("full_name", "Admin")
         )
 
-        logger.info(f"✅ Mission created: {mission_data.title} by {created_by}")
+        logger.info(f" Mission created: {mission_data.title} by {created_by}")
         return MissionResponse(**mission_doc)
 
     async def get_mission(self, mission_id: str) -> Optional[MissionResponse]:
@@ -242,7 +242,7 @@ class MissionService:
             user_name=admin.get("full_name", "Admin")
         )
 
-        logger.info(f"❌ Mission aborted: {mission_id} by {deleted_by}")
+        logger.info(f" Mission aborted: {mission_id} by {deleted_by}")
         return {"message": "Mission aborted successfully", "mission_id": mission_id}
 
     # ============================================
@@ -354,7 +354,7 @@ class MissionService:
             details={"agent_id": assignment.agent_id, "agent_name": agent.get("full_name")}
         )
 
-        logger.info(f"✅ Mission {mission_id} assigned to agent {assignment.agent_id}")
+        logger.info(f" Mission {mission_id} assigned to agent {assignment.agent_id}")
         return await self.get_mission(mission_id)
 
     async def update_mission_status(
@@ -443,7 +443,7 @@ class MissionService:
             user_name=user.get("full_name", "User")
         )
 
-        logger.info(f"✅ Mission {mission_id} status updated to {status_update.status.value}")
+        logger.info(f" Mission {mission_id} status updated to {status_update.status.value}")
         return await self.get_mission(mission_id)
 
     # ============================================
@@ -674,7 +674,7 @@ class MissionService:
             user_name=user.get("full_name", "User")
         )
 
-        logger.info(f"✅ Document uploaded to mission {mission_id}: {file.filename}")
+        logger.info(f" Document uploaded to mission {mission_id}: {file.filename}")
         
         return DocumentUploadResponse(
             filename=file.filename,
@@ -777,7 +777,7 @@ class MissionService:
             {"_id": ObjectId(agent_id)},
             update_doc
         )
-        logger.info(f"✅ Agent {agent_id} score updated: {score_change:+d}")
+        logger.info(f" Agent {agent_id} score updated: {score_change:+d}")
 
     async def _update_agent_availability(self, agent_id: str, availability: str, active_missions_change: int):
         """Update agent availability and active mission count"""
@@ -788,4 +788,4 @@ class MissionService:
                 "$inc": {"active_missions": active_missions_change}
             }
         )
-        logger.info(f"✅ Agent {agent_id} availability updated to {availability}")
+        logger.info(f" Agent {agent_id} availability updated to {availability}")

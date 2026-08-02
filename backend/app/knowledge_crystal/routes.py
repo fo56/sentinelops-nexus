@@ -2,7 +2,8 @@
 Knowledge Crystal API Routes
 Endpoints for KB creation, search, and Q&A
 """
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form, BackgroundTasks
+from fastapi.responses import StreamingResponse
 from typing import Optional, List
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
@@ -15,7 +16,7 @@ from .services import (
     KBPageService, KBSearchService, KBRAGService,
     KBChatService, KBDocumentService
 )
-from app.utils.dependencies import get_db
+from app.utils.dependencies import get_db, get_current_user
 
 router = APIRouter(prefix="/kb", tags=["knowledge-crystal"])
 
@@ -165,7 +166,8 @@ async def semantic_search(
     country: Optional[str] = Query(None, description="Filter by country (for agent documents)"),
     tags: Optional[List[str]] = Query(None),
     visibility: Optional[str] = Query(None),
-    db: AsyncIOMotorDatabase = Depends(get_db)
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     """
     Perform semantic search on knowledge pages with role-based filtering
@@ -183,13 +185,21 @@ async def semantic_search(
     - Long summary of the document
     - Matched points from the query
     """
-    # Parse category if provided
-    doc_category = None
-    if category:
-        if category.lower() == "agent":
-            doc_category = DocumentCategory.AGENT
-        elif category.lower() == "technician":
-            doc_category = DocumentCategory.TECHNICIAN
+    # Enforce RBAC filtering
+    user_role = current_user.get("role", "agent")
+    
+    if user_role == "admin":
+        # Admins can query any category if specified, otherwise global
+        doc_category = None
+        if category:
+            if category.lower() == "agent":
+                doc_category = DocumentCategory.AGENT
+            elif category.lower() == "technician":
+                doc_category = DocumentCategory.TECHNICIAN
+    elif user_role == "technician":
+        doc_category = DocumentCategory.TECHNICIAN
+    else:
+        doc_category = DocumentCategory.AGENT
     
     search_query = SearchQuery(
         query=q,
@@ -212,43 +222,31 @@ async def semantic_search(
     }
 
 
-@router.post("/chat", response_model=dict)
+@router.post("/chat")
 async def kb_chat(
     chat_req: ChatQueryRequest,
-    db: AsyncIOMotorDatabase = Depends(get_db)
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     """
-    NLP-based chat interface for Knowledge Crystal
-    
-    This is the main endpoint for agents and technicians to query the Knowledge Crystal.
-    
-    For Agents:
-    - Queries return mission-related documents
-    - Can search for previous missions in specific countries
-    - Returns document summaries and matched points
-    
-    For Technicians:
-    - Queries return technical documentation
-    - Can search for equipment documentation (CCTV, door locks, sensors, etc.)
-    - Returns setup procedures, working principles, and troubleshooting guides
-    
-    Role-based access control ensures:
-    - Agents cannot access technician documents
-    - Technicians cannot access agent mission documents
+    NLP-based chat interface for Knowledge Crystal (Streaming)
     """
-    service = KBChatService(db)
-    response = await service.chat_query(chat_req)
+    # Override user_role securely from token
+    chat_req.user_role = current_user.get("role", "agent")
     
-    return {
-        "message": "Chat query processed successfully",
-        "data": response
-    }
+    service = KBChatService(db)
+    
+    return StreamingResponse(
+        service.chat_query_stream(chat_req),
+        media_type="text/event-stream"
+    )
 
 
 @router.post("/query", response_model=dict)
 async def kb_query(
     query_req: QueryRequest,
-    db: AsyncIOMotorDatabase = Depends(get_db)
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     """
     Ask a question and get an AI-generated answer using RAG (Legacy endpoint)
@@ -274,8 +272,8 @@ async def kb_query(
 async def upload_document(
     doc_upload: KBDocumentUpload,
     file_content: str,
-    uploaded_by: str = "admin",
-    db: AsyncIOMotorDatabase = Depends(get_db)
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     """
     Upload a document to Knowledge Crystal (Admin only)
@@ -301,7 +299,7 @@ async def upload_document(
     result = await service.process_uploaded_document(
         file_content=file_content,
         doc_upload=doc_upload,
-        uploaded_by=uploaded_by
+        uploaded_by=current_user.get("email", "unknown")
     )
     
     if not result.get("success"):

@@ -202,14 +202,6 @@ class AnalyticsService:
         
         total_events = len(events)
         
-        # Failed 2FA
-        failed_2fa = len(await self.db['mfa_configs'].find({
-            'failed_attempts': {'$gt': 0}
-        }).to_list(None))
-        
-        # Failed biometric
-        failed_biometric = sum(1 for e in events if e.get('type') == 'biometric_failure')
-        
         # Unauthorized access
         unauthorized = len(await self.db['identity_logs'].find({
             'event_type': 'unauthorized_access',
@@ -228,8 +220,6 @@ class AnalyticsService:
         
         return SecurityAnalytics(
             total_security_events=total_events,
-            failed_2fa_attempts=failed_2fa,
-            biometric_failures=failed_biometric,
             unauthorized_access_attempts=unauthorized,
             suspicious_activities=suspicious,
             events_by_severity=severity_breakdown,
@@ -256,9 +246,7 @@ class AnalyticsService:
         
         if login_analytics.failed_logins > login_analytics.successful_logins * 0.5:
             recommendations.append("High failed login rate detected. Review access policies.")
-        
-        if security_analytics.failed_2fa_attempts > 10:
-            recommendations.append("Multiple failed 2FA attempts. Consider enabling account lockout.")
+
         
         if user_activity.inactive_users > user_activity.active_users:
             recommendations.append("Many inactive users. Consider license optimization.")

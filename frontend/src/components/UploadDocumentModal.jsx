@@ -1,5 +1,9 @@
 import { useState } from 'react';
 import knowledgeCrystalService from '../services/knowledgeCrystalService';
+import { Modal } from './ui/Modal';
+import { Input } from './ui/Input';
+import { Button } from './ui/Button';
+import { Label } from './ui/Label';
 
 export default function UploadDocumentModal({ onClose, onSuccess }) {
   const [formData, setFormData] = useState({
@@ -21,7 +25,6 @@ export default function UploadDocumentModal({ onClose, onSuccess }) {
 
     setFormData({ ...formData, file });
     
-    // Read file content
     const reader = new FileReader();
     reader.onload = (event) => {
       setFileContent(event.target.result);
@@ -36,7 +39,6 @@ export default function UploadDocumentModal({ onClose, onSuccess }) {
     e.preventDefault();
     setError('');
 
-    // Validation
     if (!formData.title.trim()) {
       setError('Title is required');
       return;
@@ -50,7 +52,6 @@ export default function UploadDocumentModal({ onClose, onSuccess }) {
     try {
       setUploading(true);
 
-      // Prepare upload data
       const uploadData = {
         title: formData.title,
         file_content: fileContent,
@@ -78,309 +79,139 @@ export default function UploadDocumentModal({ onClose, onSuccess }) {
   };
 
   return (
-    <div style={styles.overlay} onClick={onClose}>
-      <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <div style={styles.header}>
-          <h2 style={styles.title}>Upload Document</h2>
-          <button onClick={onClose} style={styles.closeButton}>×</button>
+    <Modal 
+      isOpen={true} 
+      onClose={onClose} 
+      title="Upload Document" 
+      maxWidth="600px"
+    >
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        {error && (
+          <div style={{ backgroundColor: '#dc3545', color: 'white', padding: '12px', borderRadius: '8px', fontSize: '0.9rem' }}>
+            {error}
+          </div>
+        )}
+
+        {/* Title */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <Label>Document Title <span style={{ color: '#dc3545' }}>*</span></Label>
+          <Input
+            type="text"
+            value={formData.title}
+            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            placeholder="Enter document title"
+            required
+          />
         </div>
 
-        <form onSubmit={handleSubmit} style={styles.form}>
-          {error && (
-            <div style={styles.errorBox}>
-              {error}
-            </div>
-          )}
+        {/* Description */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <Label>Short Description</Label>
+          <Input
+            as="textarea"
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            placeholder="Brief description of the document"
+            rows="3"
+          />
+        </div>
 
-          {/* Title */}
-          <div style={styles.formGroup}>
-            <label style={styles.label}>
-              Document Title <span style={styles.required}>*</span>
-            </label>
-            <input
+        {/* Category */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <Label>Category <span style={{ color: '#dc3545' }}>*</span></Label>
+          <Input
+            as="select"
+            value={formData.category}
+            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+            required
+          >
+            <option value="agent">Agent - Mission Documents</option>
+            <option value="technician">Technician - Technical Documentation</option>
+          </Input>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: 0 }}>
+            {formData.category === 'agent' 
+              ? 'Mission-related documents for agents' 
+              : 'Technical documentation for technicians'}
+          </p>
+        </div>
+
+        {/* Mission ID (for agent documents) */}
+        {formData.category === 'agent' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <Label>Mission ID (Optional)</Label>
+            <Input
               type="text"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              placeholder="Enter document title"
-              style={styles.input}
-              required
+              value={formData.mission_id}
+              onChange={(e) => setFormData({ ...formData, mission_id: e.target.value })}
+              placeholder="e.g., MISSION-2024-001"
             />
           </div>
+        )}
 
-          {/* Description */}
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Short Description</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Brief description of the document"
-              style={styles.textarea}
-              rows="3"
-            />
-          </div>
-
-          {/* Category */}
-          <div style={styles.formGroup}>
-            <label style={styles.label}>
-              Category <span style={styles.required}>*</span>
-            </label>
-            <select
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              style={styles.select}
-              required
-            >
-              <option value="agent">Agent - Mission Documents</option>
-              <option value="technician">Technician - Technical Documentation</option>
-            </select>
-            <p style={styles.hint}>
-              {formData.category === 'agent' 
-                ? 'Mission-related documents for agents' 
-                : 'Technical documentation for technicians'}
-            </p>
-          </div>
-
-          {/* Mission ID (for agent documents) */}
-          {formData.category === 'agent' && (
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Mission ID (Optional)</label>
-              <input
-                type="text"
-                value={formData.mission_id}
-                onChange={(e) => setFormData({ ...formData, mission_id: e.target.value })}
-                placeholder="e.g., MISSION-2024-001"
-                style={styles.input}
-              />
-            </div>
-          )}
-
-          {/* Country (for agent documents) */}
-          {formData.category === 'agent' && (
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Country (Optional)</label>
-              <input
-                type="text"
-                value={formData.country}
-                onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                placeholder="e.g., USA, UK, France"
-                style={styles.input}
-              />
-            </div>
-          )}
-
-          {/* Tags */}
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Tags (Optional)</label>
-            <input
+        {/* Country (for agent documents) */}
+        {formData.category === 'agent' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <Label>Country (Optional)</Label>
+            <Input
               type="text"
-              value={formData.tags}
-              onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-              placeholder="Enter tags separated by commas (e.g., urgent, classified, technical)"
-              style={styles.input}
+              value={formData.country}
+              onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+              placeholder="e.g., USA, UK, France"
             />
           </div>
+        )}
 
-          {/* File Upload */}
-          <div style={styles.formGroup}>
-            <label style={styles.label}>
-              Upload File <span style={styles.required}>*</span>
-            </label>
-            <input
-              type="file"
-              onChange={handleFileChange}
-              accept=".txt,.pdf,.jpg,.jpeg,.png,.doc,.docx,.md"
-              style={styles.fileInput}
-              required
-            />
-            <p style={styles.hint}>
-              Supported formats: TXT, PDF, JPG, PNG, DOC, DOCX, MD
+        {/* Tags */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <Label>Tags (Optional)</Label>
+          <Input
+            type="text"
+            value={formData.tags}
+            onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+            placeholder="Enter tags separated by commas (e.g., urgent, classified, technical)"
+          />
+        </div>
+
+        {/* File Upload */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <Label>Upload File <span style={{ color: '#dc3545' }}>*</span></Label>
+          <Input
+            type="file"
+            onChange={handleFileChange}
+            accept=".txt,.pdf,.jpg,.jpeg,.png,.doc,.docx,.md"
+            required
+            style={{ padding: '8px' }}
+          />
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: 0 }}>
+            Supported formats: TXT, PDF, JPG, PNG, DOC, DOCX, MD
+          </p>
+          {formData.file && (
+            <p style={{ color: 'var(--primary)', fontSize: '0.9rem', margin: 0 }}>
+              Selected: {formData.file.name}
             </p>
-            {formData.file && (
-              <p style={styles.fileName}>
-                Selected: {formData.file.name}
-              </p>
-            )}
-          </div>
+          )}
+        </div>
 
-          {/* Buttons */}
-          <div style={styles.buttonGroup}>
-            <button
-              type="button"
-              onClick={onClose}
-              style={styles.cancelButton}
-              disabled={uploading}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              style={styles.submitButton}
-              disabled={uploading}
-            >
-              {uploading ? 'Uploading...' : 'Upload Document'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        {/* Buttons */}
+        <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            disabled={uploading}
+            style={{ flex: 1 }}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            disabled={uploading}
+            style={{ flex: 1 }}
+          >
+            {uploading ? 'Uploading...' : 'Upload Document'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }
-
-const styles = {
-  overlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(10, 14, 39, 0.85)',
-    backdropFilter: 'blur(8px)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 9999,
-    padding: '20px',
-  },
-  modal: {
-    backgroundColor: '#1a1f3a',
-    borderRadius: '12px',
-    width: '100%',
-    maxWidth: '600px',
-    maxHeight: '90vh',
-    overflow: 'auto',
-    border: '1px solid #2d3354',
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '20px 24px',
-    borderBottom: '1px solid #2d3354',
-  },
-  title: {
-    color: '#29a399',
-    fontSize: '1.5rem',
-    fontWeight: '600',
-    margin: 0,
-  },
-  closeButton: {
-    background: 'none',
-    border: 'none',
-    color: '#8b92b0',
-    fontSize: '2rem',
-    cursor: 'pointer',
-    padding: 0,
-    width: '32px',
-    height: '32px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  form: {
-    padding: '24px',
-  },
-  errorBox: {
-    backgroundColor: '#dc3545',
-    color: 'white',
-    padding: '12px',
-    borderRadius: '8px',
-    marginBottom: '20px',
-    fontSize: '0.9rem',
-  },
-  formGroup: {
-    marginBottom: '20px',
-  },
-  label: {
-    display: 'block',
-    color: '#c5c7d4',
-    fontSize: '0.95rem',
-    fontWeight: '500',
-    marginBottom: '8px',
-  },
-  required: {
-    color: '#dc3545',
-  },
-  input: {
-    width: '100%',
-    padding: '12px',
-    backgroundColor: '#0a0e27',
-    border: '1px solid #2d3354',
-    borderRadius: '8px',
-    color: 'white',
-    fontSize: '1rem',
-    boxSizing: 'border-box',
-  },
-  textarea: {
-    width: '100%',
-    padding: '12px',
-    backgroundColor: '#0a0e27',
-    border: '1px solid #2d3354',
-    borderRadius: '8px',
-    color: 'white',
-    fontSize: '1rem',
-    fontFamily: 'inherit',
-    resize: 'vertical',
-    boxSizing: 'border-box',
-  },
-  select: {
-    width: '100%',
-    padding: '12px',
-    backgroundColor: '#0a0e27',
-    border: '1px solid #2d3354',
-    borderRadius: '8px',
-    color: 'white',
-    fontSize: '1rem',
-    cursor: 'pointer',
-    boxSizing: 'border-box',
-  },
-  fileInput: {
-    width: '100%',
-    padding: '12px',
-    backgroundColor: '#0a0e27',
-    border: '1px solid #2d3354',
-    borderRadius: '8px',
-    color: 'white',
-    fontSize: '1rem',
-    cursor: 'pointer',
-    boxSizing: 'border-box',
-  },
-  hint: {
-    color: '#8b92b0',
-    fontSize: '0.85rem',
-    marginTop: '6px',
-    margin: '6px 0 0 0',
-  },
-  fileName: {
-    color: '#29a399',
-    fontSize: '0.9rem',
-    marginTop: '8px',
-    margin: '8px 0 0 0',
-  },
-  buttonGroup: {
-    display: 'flex',
-    gap: '12px',
-    marginTop: '24px',
-  },
-  cancelButton: {
-    flex: 1,
-    padding: '12px',
-    backgroundColor: 'transparent',
-    border: '1px solid #2d3354',
-    borderRadius: '8px',
-    color: '#c5c7d4',
-    fontSize: '1rem',
-    fontWeight: '600',
-    cursor: 'pointer',
-  },
-  submitButton: {
-    flex: 1,
-    padding: '12px',
-    backgroundColor: '#29a399',
-    border: 'none',
-    borderRadius: '8px',
-    color: 'white',
-    fontSize: '1rem',
-    fontWeight: '600',
-    cursor: 'pointer',
-  },
-};
