@@ -111,9 +111,9 @@ export const authService = {
     return response;
   },
 
-  // QR Code Login
-  async qrLogin(qrToken) {
-    const response = await apiClient.post('/auth/scan', { qr_token: qrToken });
+  // Token Login
+  async tokenLogin(token) {
+    const response = await apiClient.post('/auth/token-login', { token: token });
     if (response.access_token) {
       localStorage.setItem('access_token', response.access_token);
       localStorage.setItem('user_role', response.role);
@@ -123,10 +123,7 @@ export const authService = {
     return response;
   },
 
-  // Validate QR Token
-  async validateQRToken(qrToken) {
-    return apiClient.post('/auth/qr/validate', { qr_token: qrToken });
-  },
+
 
   // Validate Current Token
   async validateToken() {
@@ -249,7 +246,7 @@ export const facilityOpsService = {
   
   // Get performance stats for the logged-in technician
   async getPerformanceStats() {
-    return apiClient.get('/api/analytics/ranger-stats');
+    return apiClient.get('/api/ops-planner/ranger-stats');
   }
 };
 

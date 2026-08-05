@@ -159,10 +159,6 @@ The backend provides extensive RESTful endpoints. A full interactive OpenAPI spe
 - `POST /facility-ops/issues` - Report a facility issue
 - `POST /facility-ops/issues/{id}/outcome` - Submit work completion notes
 
-### Analytics
-- `GET /api/analytics/report` - Comprehensive analytics report (uses MongoDB aggregation pipelines)
-- `GET /api/analytics/login` - Login statistics
-- `GET /api/analytics/anomalies` - Anomaly detection
 
 ## Limitations
 

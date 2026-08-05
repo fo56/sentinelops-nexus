@@ -80,3 +80,9 @@ htmlcov/
 
 # Scratchpad / Utility Scripts
 seed_data.py
+
+# Docs
+app/knowledge_crystal/rag.md
+seed_docs.py
+reindex.py
+test_websocket_rooms.py

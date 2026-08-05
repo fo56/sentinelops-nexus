@@ -1,7 +1,7 @@
 """
 Authentication Routes
-Routes for login, QR scanning, token validation, and user info
-Includes ranger login (email + password) and QR code scanning
+Routes for login, token validation, and user info
+Includes ranger login (email + password)
 """
 
 import logging
@@ -13,11 +13,11 @@ from app.database.mongodb import get_database
 from app.utils.auth import create_access_token, decode_access_token
 from app.utils.dependencies import get_current_user
 from .models import (
-    LoginRequest, TokenResponse, ScanQRRequest,
-    QRTokenResponse, UserMe, IdentityLogResponse,
-    RangerLoginRequest, QRLoginRequest
+    LoginRequest, TokenResponse,
+    UserMe, IdentityLogResponse,
+    RangerLoginRequest, TokenLoginRequest
 )
-from .services import UserService, generate_qr_with_token
+from .services import UserService
 
 logger = logging.getLogger(__name__)
 
@@ -51,12 +51,15 @@ async def login(
     Unified Login endpoint for all users (Admins, Rangers, Technicians)
     """
     try:
-        # Get client IP and device info
+        import time
+        t0 = time.time()
         client_ip = get_client_ip(http_request)
         device_info = user_agent or "Unknown Device"
+        t1 = time.time()
         
         # Authenticate user
         user = await UserService.authenticate_user(db, request.email, request.password)
+        t2 = time.time()
         
         if not user:
             # Log failed attempt
@@ -71,39 +74,32 @@ async def login(
             )
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid email or password"
+                detail="Incorrect email or password",
+                headers={"WWW-Authenticate": "Bearer"},
             )
             
-        if user.get("status") != "active":
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="User account is not active"
-            )
-        
-        # Update last login
-        await UserService.update_last_login(db, str(user["_id"]))
-        
+        t3 = time.time()
         # Log successful login
         await UserService.log_identity_event(
             db,
             user_id=str(user["_id"]),
             email=user["email"],
-            status="logged_in",
+            status="login",
             device_info=device_info,
-            ip_address=client_ip,
-            reason="Password login"
+            ip_address=client_ip
         )
+        t4 = time.time()
         
-        # Create JWT token with role information
-        access_token_expires = timedelta(minutes=60)
+        # Create access token
+        from app.config.settings import settings
+        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
-            data={
-                "sub": user["email"],
-                "role": user["role"],
-                "user_id": str(user["_id"])
-            },
+            data={"sub": user["email"], "role": user["role"], "user_id": str(user["_id"])},
             expires_delta=access_token_expires
         )
+        t5 = time.time()
+        print(f"IP: {t1-t0}, AUTH: {t2-t1}, LOG: {t4-t3}, TOKEN: {t5-t4}, TOTAL: {t5-t0}")
+
         
         logger.info(f" User logged in: {request.email} (Role: {user['role']})")
         
@@ -126,18 +122,17 @@ async def login(
         )
 
 
-@router.post("/scan", response_model=TokenResponse)
-async def scan_qr(
-    request: ScanQRRequest,
+@router.post("/token-login", response_model=TokenResponse)
+async def token_login(
+    request: TokenLoginRequest,
     user_agent: Optional[str] = Header(None),
     db = Depends(get_database)
 ):
     """
-    Scan QR code to login
-    For now, the QR token is stored with the user, so we verify it
+    Login using a text token
     
     Args:
-        request: ScanQRRequest with QR token
+        request: TokenLoginRequest with token
         user_agent: User agent from request header
         db: MongoDB database
         
@@ -145,15 +140,15 @@ async def scan_qr(
         JWT token and user information
     """
     try:
-        # Find user with this QR token
+        # Find user with this token
         collection = db["users"]
-        user = await collection.find_one({"qr_token": request.qr_token})
+        user = await collection.find_one({"token": request.token})
         
         if not user:
-            logger.warning(f"Invalid QR token attempted: {request.qr_token}")
+            logger.warning(f"Invalid token attempted: {request.token}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid QR token"
+                detail="Invalid token"
             )
         
         if user["status"] != "active":
@@ -172,7 +167,7 @@ async def scan_qr(
             email=user["email"],
             status="logged_in",
             device_info=user_agent,
-            reason="QR code scan"
+            reason="Token login"
         )
         
         # Create JWT token
@@ -182,7 +177,7 @@ async def scan_qr(
             expires_delta=access_token_expires
         )
         
-        logger.info(f" User logged in via QR: {user['email']}")
+        logger.info(f" User logged in via token: {user['email']}")
         
         return TokenResponse(
             access_token=access_token,
@@ -196,119 +191,10 @@ async def scan_qr(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"QR scan error: {e}")
+        logger.error(f"Token login error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="QR scan failed"
-        )
-
-
-@router.post("/qr/validate", response_model=dict)
-async def validate_qr_login(
-    request: QRLoginRequest,
-    http_request: Request,
-    user_agent: Optional[str] = Header(None),
-    db = Depends(get_database)
-):
-    """
-     VALIDATE QR TOKEN FOR LOGIN
-    Validates QR token and checks:
-     QR token is valid and exists
-     QR token has not expired
-     User account is still active
-     User role is valid
-    
-    This endpoint is called before the actual login to verify the QR code
-    can be used for authentication.
-    
-    Args:
-        request: QRLoginRequest with QR token
-        http_request: HTTP request for IP extraction
-        user_agent: User agent from request header
-        db: MongoDB database
-        
-    Returns:
-        {
-            "valid": true/false,
-            "user_id": "user_mongo_id",
-            "email": "ranger@example.com",
-            "full_name": "Ranger Name",
-            "role": "technician/agent",
-            "expired": true/false,
-            "expires_in_minutes": 15
-        }
-    """
-    try:
-        # Get client IP and device info
-        client_ip = get_client_ip(http_request)
-        device_info = user_agent or "Unknown Device"
-        
-        # Validate QR token
-        user = await UserService.validate_qr_token(db, request.qr_token)
-        
-        if not user:
-            # Log failed QR validation attempt
-            await UserService.log_identity_event(
-                db,
-                user_id="unknown",
-                email="unknown",
-                status="failed_attempt",
-                device_info=device_info,
-                ip_address=client_ip,
-                reason="Invalid or expired QR token"
-            )
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid QR token"
-            )
-        
-        # Calculate expiration time remaining
-        expires_in_minutes = None
-        is_expired = False
-        
-        if "qr_token_expires_at" in user and user["qr_token_expires_at"]:
-            expires_at = user["qr_token_expires_at"]
-            if isinstance(expires_at, str):
-                from datetime import datetime
-                expires_at = datetime.fromisoformat(expires_at)
-            
-            time_remaining = (expires_at - datetime.utcnow()).total_seconds() / 60
-            expires_in_minutes = max(0, int(time_remaining))
-            is_expired = time_remaining <= 0
-        
-        # Log successful QR validation
-        await UserService.log_identity_event(
-            db,
-            user_id=str(user["_id"]),
-            email=user["email"],
-            status="qr_validated",
-            device_info=device_info,
-            ip_address=client_ip,
-            reason=f"QR token validated | Expires in {expires_in_minutes} minutes"
-        )
-        
-        logger.info(
-            f" QR token validated for user: {user['email']} | "
-            f"IP: {client_ip} | Expires in: {expires_in_minutes} minutes"
-        )
-        
-        return {
-            "valid": True,
-            "user_id": str(user["_id"]),
-            "email": user["email"],
-            "full_name": user["full_name"],
-            "role": user["role"],
-            "expired": is_expired,
-            "expires_in_minutes": expires_in_minutes
-        }
-    
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"QR validation error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="QR token validation failed"
+            detail="Token login failed"
         )
 
 

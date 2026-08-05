@@ -159,9 +159,9 @@ class AgentScoreInfo(BaseModel):
     email: str
     score: int
     availability: str
-    active_missions: int
-    completed_missions: int
-    failed_missions: int
+    active_missions: int = Field(default=0)
+    completed_missions: int = Field(default=0)
+    failed_missions: int = Field(default=0)
     
     class Config:
         populate_by_name = True

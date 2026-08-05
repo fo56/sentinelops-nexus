@@ -35,9 +35,17 @@ class KBPageService:
         embedding_service = get_embedding_service()
         vector_store = get_vector_store()
         
-        # Process content: chunk and embed
         try:
-            chunks, embeddings = embedding_service.process_content(page_data.content)
+            context_header = (
+                f"search_document: Document Title: {page_data.title} | "
+                f"Category: {page_data.category} | "
+                f"Country: {page_data.country or 'GLOBAL'} | "
+                f"Content: "
+            )
+            chunks, embeddings = embedding_service.process_content(
+                content=page_data.content,
+                context_header=context_header
+            )
         except Exception as e:
             return {
                 "success": False,
@@ -156,7 +164,20 @@ class KBPageService:
             
             # Generate new chunks and embeddings
             try:
-                chunks, embeddings = embedding_service.process_content(update_data.content)
+                title = update_data.title or existing_page.get("title")
+                category = existing_page.get("category", "")
+                country = existing_page.get("country", "") or "GLOBAL"
+                
+                context_header = (
+                    f"search_document: Document Title: {title} | "
+                    f"Category: {category} | "
+                    f"Country: {country} | "
+                    f"Content: "
+                )
+                chunks, embeddings = embedding_service.process_content(
+                    content=update_data.content,
+                    context_header=context_header
+                )
             except Exception as e:
                 return {"success": False, "error": f"Failed to process content: {str(e)}"}
             
@@ -294,16 +315,22 @@ class KBSearchService:
             print(f" Failed to embed query: {e}")
             return []
         
-        # Build vector store filters for category
-        vector_filters = {}
+        # Build vector store filters for category, country, visibility
+        and_conditions = []
         if query.category:
-            vector_filters["category"] = query.category
+            and_conditions.append({"category": {"$eq": query.category}})
+        if query.country:
+            and_conditions.append({"country": {"$in": [query.country, "GLOBAL", ""]}})
+        if query.visibility:
+            and_conditions.append({"visibility": {"$eq": query.visibility}})
+            
+        vector_filters = {"$and": and_conditions} if len(and_conditions) > 1 else (and_conditions[0] if and_conditions else None)
         
-        # Search vector store with category filter applied at vector level
+        # Search vector store with RBAC filters applied at vector level
         chunks = vector_store.search(
             query_embedding, 
-            limit=limit * 3,  # Get more chunks for additional filtering
-            filters=vector_filters if vector_filters else None
+            limit=limit,
+            filters=vector_filters
         )
         
         results = []
@@ -317,10 +344,6 @@ class KBSearchService:
             if page_id in seen_pages:
                 continue
             
-            # Filter by country if specified (additional filter beyond vector search)
-            if query.country and metadata.get("country") != query.country:
-                continue
-            
             # Get page details - gracefully handle invalid or stale ObjectIds from ChromaDB
             try:
                 page_oid = ObjectId(page_id)
@@ -331,11 +354,7 @@ class KBSearchService:
             if not page:
                 continue
             
-            # Apply visibility filter
-            if query.visibility and page.get("visibility") != query.visibility:
-                continue
-            
-            # Apply tags filter
+            # Apply tags filter (post-filter since ChromaDB tags are comma strings)
             if query.tags:
                 page_tags = set(page.get("tags", []))
                 query_tags = set(query.tags)
@@ -371,8 +390,6 @@ class KBSearchService:
                 break
         
         return results
-
-
 
 
 class KBChatService:

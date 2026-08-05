@@ -740,22 +740,6 @@ body {
   justify-content: center;
 }
 
-.login-qr-info {
-  padding: 1rem;
-  background-color: var(--bg-tertiary);
-  border-radius: 0.5rem;
-  border: 1px solid var(--border-color);
-  text-align: center;
-  font-family: monospace;
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-}
-
-.login-qr-demo {
-  font-size: 0.65rem;
-  margin-top: 0.5rem;
-  display: block;
-}
 
 .login-footer {
   text-align: center;

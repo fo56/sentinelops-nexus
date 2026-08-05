@@ -54,8 +54,8 @@ export default function TechnicianDashboard() {
   };
 
   const handleSubmitOutcome = async () => {
-    if (!notes.trim()) {
-      alert('Please provide work completion notes');
+    if (!notes.trim() || notes.trim().length < 10) {
+      alert('Please provide work completion notes (minimum 10 characters)');
       return;
     }
 
@@ -79,7 +79,11 @@ export default function TechnicianDashboard() {
       alert(`Work outcome submitted successfully! Your score has been ${outcome === 'success' ? 'increased by 50' : 'decreased by 25'} points.`);
     } catch (err) {
       console.error('Error submitting outcome:', err);
-      alert(err.response?.data?.detail || 'Failed to submit outcome');
+      const errorDetail = err.response?.data?.detail;
+      const errorMessage = Array.isArray(errorDetail) 
+        ? errorDetail.map(e => `${e.loc.join('.')}: ${e.msg}`).join('\n') 
+        : errorDetail || 'Failed to submit outcome';
+      alert(`Error submitting outcome:\n${errorMessage}`);
     }
   };
 

@@ -71,7 +71,8 @@ async def list_kb_pages(
     tags: Optional[List[str]] = Query(None, description="Filter by tags"),
     limit: int = Query(10, ge=1, le=50),
     skip: int = Query(0, ge=0),
-    db: AsyncIOMotorDatabase = Depends(get_db)
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     """
     List knowledge pages with optional filters
@@ -87,8 +88,13 @@ async def list_kb_pages(
     
     # Build query filters
     query = {}
-    if category:
-        query["category"] = category
+    user_role = current_user.get("role", "agent")
+    
+    if user_role == "admin":
+        if category and category.lower() != "all":
+            query["category"] = category
+    else:
+        query["category"] = user_role
     if visibility:
         query["visibility"] = visibility
     if country:

@@ -30,6 +30,7 @@ export default function AdminUsers() {
         role: user.role || 'Agent',
         status: user.status || 'active',
         dateCreated: user.created_at || new Date().toISOString(),
+        token: user.token || 'N/A',
       }));
       
       setUsers(transformedUsers);
@@ -205,6 +206,18 @@ export default function AdminUsers() {
                       fontSize: '0.75rem',
                     }}
                   >
+                    TOKEN
+                  </th>
+                  <th
+                    style={{
+                      padding: '1rem',
+                      textAlign: 'left',
+                      color: 'rgba(255, 255, 255, 0.6)',
+                      fontWeight: '600',
+                      letterSpacing: '0.05em',
+                      fontSize: '0.75rem',
+                    }}
+                  >
                     DATE CREATED
                   </th>
                   <th
@@ -259,6 +272,9 @@ export default function AdminUsers() {
                       >
                         {user.status.toUpperCase()}
                       </span>
+                    </td>
+                    <td style={{ padding: '1rem', color: '#29a399', fontFamily: "'JetBrains Mono', monospace", fontSize: '0.85rem' }}>
+                      {user.token}
                     </td>
                     <td style={{ padding: '1rem', color: 'rgba(255, 255, 255, 0.6)' }}>
                       {new Date(user.dateCreated).toLocaleDateString()}

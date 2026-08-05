@@ -7,8 +7,11 @@ from typing import List, Optional, Dict, Any
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from fastapi import HTTPException, status, UploadFile
+from fastapi.encoders import jsonable_encoder
 import os
 import logging
+
+from .websocket import manager
 
 from .models import (
     MissionCreate, MissionAssign, MissionStatusUpdate, MissionUpdate,
@@ -77,7 +80,16 @@ class MissionService:
         )
 
         logger.info(f" Mission created: {mission_data.title} by {created_by}")
-        return MissionResponse(**mission_doc)
+        response = MissionResponse(**mission_doc)
+        
+        await manager.broadcast({
+            "type": "mission_created",
+            "mission_id": str(response.id),
+            "data": jsonable_encoder(response),
+            "user": created_by
+        })
+        
+        return response
 
     async def get_mission(self, mission_id: str) -> Optional[MissionResponse]:
         """Get single mission by ID"""
@@ -179,7 +191,19 @@ class MissionService:
         )
 
         # Return updated mission
-        return await self.get_mission(mission_id)
+        response = await self.get_mission(mission_id)
+        
+        await manager.broadcast_to_room(
+            mission_id,
+            {
+                "type": "mission_updated",
+                "mission_id": mission_id,
+                "data": jsonable_encoder(response),
+                "user": updated_by
+            }
+        )
+        
+        return response
 
     async def delete_mission(self, mission_id: str, deleted_by: str) -> dict:
         """
@@ -228,7 +252,19 @@ class MissionService:
         )
 
         logger.info(f" Mission aborted: {mission_id} by {deleted_by}")
-        return {"message": "Mission aborted successfully", "mission_id": mission_id}
+        result = {"message": "Mission aborted successfully", "mission_id": mission_id}
+        
+        await manager.broadcast_to_room(
+            mission_id,
+            {
+                "type": "mission_deleted",
+                "mission_id": mission_id,
+                "data": result,
+                "user": deleted_by
+            }
+        )
+        
+        return result
 
     # ============================================
     # MISSION ASSIGNMENT & STATUS
@@ -335,7 +371,19 @@ class MissionService:
         )
 
         logger.info(f" Mission {mission_id} assigned to agent {assignment.agent_id}")
-        return await self.get_mission(mission_id)
+        response = await self.get_mission(mission_id)
+        
+        await manager.broadcast_to_room(
+            mission_id,
+            {
+                "type": "mission_assigned",
+                "mission_id": mission_id,
+                "data": jsonable_encoder(response),
+                "user": assigned_by
+            }
+        )
+        
+        return response
 
     async def update_mission_status(
         self,
@@ -424,7 +472,19 @@ class MissionService:
         )
 
         logger.info(f" Mission {mission_id} status updated to {status_update.status.value}")
-        return await self.get_mission(mission_id)
+        response = await self.get_mission(mission_id)
+        
+        await manager.broadcast_to_room(
+            mission_id,
+            {
+                "type": "mission_moved",
+                "mission_id": mission_id,
+                "data": jsonable_encoder(response),
+                "user": updated_by
+            }
+        )
+        
+        return response
 
     # ============================================
     # KANBAN BOARD VIEW
@@ -621,7 +681,6 @@ class MissionService:
 
         # Generate unique filename
         timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        file_extension = os.path.splitext(file.filename)[1]
         unique_filename = f"{mission_id}_{timestamp}_{file.filename}"
         file_path = os.path.join(upload_dir, unique_filename)
 

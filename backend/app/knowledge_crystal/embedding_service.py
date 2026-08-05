@@ -35,8 +35,8 @@ class EmbeddingService:
     def chunk_text(
         self,
         text: str,
-        chunk_size: int = 500,
-        overlap: int = 100
+        chunk_size: int = 250,
+        overlap: int = 50
     ) -> List[str]:
         """
         Split text into overlapping chunks
@@ -52,37 +52,34 @@ class EmbeddingService:
         if not text or len(text.strip()) == 0:
             return []
         
-        # Split text into sentences first
-        sentences = re.split(r'(?<=[.!?])\s+', text)
+        import re
+        sentences = re.split(r'(?<=[.!?])\s+', text.strip())
         
         chunks = []
         current_chunk = []
-        current_word_count = 0
+        current_length = 0
         
         for sentence in sentences:
-            sentence_words = len(sentence.split())
-            
-            # Start new chunk if current one would exceed size
-            if current_word_count + sentence_words > chunk_size and current_chunk:
-                # Create chunk
-                chunk_text = " ".join(current_chunk)
-                if chunk_text.strip():
-                    chunks.append(chunk_text)
+            sentence = sentence.strip()
+            if not sentence:
+                continue
                 
-                # Keep overlap
-                overlap_text = " ".join(current_chunk[-(overlap // 10):]) if len(current_chunk) > 1 else ""
-                current_chunk = [overlap_text] if overlap_text else []
-                current_word_count = len(overlap_text.split()) if overlap_text else 0
+            sentence_words = sentence.split()
+            sentence_len = len(sentence_words)
             
-            current_chunk.append(sentence)
-            current_word_count += sentence_words
-        
-        # Add final chunk
+            if current_length + sentence_len > chunk_size and current_chunk:
+                chunks.append(" ".join(current_chunk))
+                # Take overlap words from the end of the chunk
+                overlap_words = current_chunk[-overlap:] if overlap > 0 else []
+                current_chunk = overlap_words + sentence_words
+                current_length = len(current_chunk)
+            else:
+                current_chunk.extend(sentence_words)
+                current_length += sentence_len
+                
         if current_chunk:
-            chunk_text = " ".join(current_chunk)
-            if chunk_text.strip():
-                chunks.append(chunk_text)
-        
+            chunks.append(" ".join(current_chunk))
+            
         return chunks
     
     def generate_embeddings(self, texts: List[str]) -> List[List[float]]:
@@ -144,11 +141,16 @@ class EmbeddingService:
             raise ValueError("Query cannot be empty")
         
         try:
+            # Add prefix for nomic-embed-text
+            prompt_text = query.strip()
+            if "nomic" in self.model:
+                prompt_text = f"search_query: {prompt_text}"
+                
             response = requests.post(
                 f"{self.base_url}/api/embeddings",
                 json={
                     "model": self.model,
-                    "prompt": query.strip()
+                    "prompt": prompt_text
                 },
                 timeout=30
             )
@@ -166,8 +168,9 @@ class EmbeddingService:
     def process_content(
         self,
         content: str,
-        chunk_size: int = 500,
-        overlap: int = 100
+        chunk_size: int = 250,
+        overlap: int = 50,
+        context_header: str = ""
     ) -> Tuple[List[str], List[List[float]]]:
         """
         Process content: chunk and embed
@@ -182,6 +185,10 @@ class EmbeddingService:
         """
         # Chunk the text
         chunks = self.chunk_text(content, chunk_size, overlap)
+        
+        # Prepend context header to EVERY chunk individually
+        if context_header:
+            chunks = [f"{context_header}{chunk}" for chunk in chunks]
         
         if not chunks:
             raise ValueError("No chunks generated from content")

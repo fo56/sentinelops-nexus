@@ -113,8 +113,7 @@ class AdminCreateUserResponse(BaseModel):
     email: str
     full_name: str
     role: UserRole
-    qr_token: str
-    qr_image_url: Optional[str] = None
+    token: str
     message: str
 
 
@@ -134,17 +133,17 @@ class TokenResponse(BaseModel):
     role: UserRole
 
 
-class QRTokenResponse(BaseModel):
-    """Response model for QR token"""
-    qr_token: str
+class LoginTokenResponse(BaseModel):
+    """Response model for login token"""
+    token: str
     user_id: str
     email: str
     expires_in_minutes: int
 
 
-class ScanQRRequest(BaseModel):
-    """Request model for scanning QR code"""
-    qr_token: str
+class TokenLoginRequest(BaseModel):
+    """Request model for logging in with a token"""
+    token: str
 
 
 class RangerLoginRequest(BaseModel):
@@ -153,9 +152,7 @@ class RangerLoginRequest(BaseModel):
     password: str = Field(..., min_length=8, description="Ranger's password")
 
 
-class QRLoginRequest(BaseModel):
-    """Request model for QR code login"""
-    qr_token: str = Field(..., description="QR token scanned from QR code")
+
 
 
 class IdentityLog(BaseModel):
@@ -168,7 +165,7 @@ class IdentityLog(BaseModel):
     ip_address: Optional[str] = None
     status: str = "logged_in"  # logged_in, logged_out, failed_attempt
     reason: Optional[str] = None
-    qr_scan: Optional[bool] = False  # Whether login was via QR
+    token_login: Optional[bool] = False  # Whether login was via token
 
 
 class IdentityLogResponse(BaseModel):

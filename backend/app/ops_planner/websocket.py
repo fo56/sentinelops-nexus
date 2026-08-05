@@ -2,9 +2,8 @@
 WebSocket Connection Manager
 Real-time updates for mission board using WebSocket
 """
-from typing import List, Dict, Optional
+from typing import List, Dict
 from fastapi import WebSocket, WebSocketDisconnect
-import json
 import logging
 from datetime import datetime
 
@@ -111,6 +110,38 @@ class ConnectionManager:
                 logger.error(f"Error broadcasting to {client_id}: {e}")
                 disconnected_clients.append(client_id)
         
+        # Clean up disconnected clients
+        for client_id in disconnected_clients:
+            self.disconnect(client_id)
+
+    async def broadcast_to_room(self, mission_id: str, message: dict):
+        """
+        Broadcast message to all clients in a specific mission room
+        
+        Args:
+            mission_id: The mission room ID to broadcast to
+            message: Message data to broadcast
+        """
+        if mission_id not in self.mission_rooms:
+            return
+            
+        disconnected_clients = []
+        client_ids = self.mission_rooms[mission_id].copy()
+        
+        for client_id in client_ids:
+            if client_id in self.active_connections:
+                connection = self.active_connections[client_id]
+                try:
+                    await connection.send_json(message)
+                except WebSocketDisconnect:
+                    disconnected_clients.append(client_id)
+                except Exception as e:
+                    logger.error(f"Error broadcasting to room {mission_id}, client {client_id}: {e}")
+                    disconnected_clients.append(client_id)
+            else:
+                # Client is no longer active but was in room
+                disconnected_clients.append(client_id)
+                
         # Clean up disconnected clients
         for client_id in disconnected_clients:
             self.disconnect(client_id)

@@ -6,7 +6,7 @@ Authentication middleware and RBAC
 import logging
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from typing import Optional
+
 from app.utils.auth import decode_access_token
 from app.database.mongodb import get_database
 from app.identity_vault.models import UserRole

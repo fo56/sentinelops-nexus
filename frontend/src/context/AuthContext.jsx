@@ -69,11 +69,11 @@ export const AuthProvider = ({ children }) => {
     []
   );
 
-  const qrLogin = useCallback(async (qrToken) => {
+  const tokenLogin = useCallback(async (token) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await authService.qrLogin(qrToken);
+      const response = await authService.tokenLogin(token);
 
       const userData = await authService.getCurrentUser();
       const userInfo = authService.getUserInfo();
@@ -106,7 +106,7 @@ export const AuthProvider = ({ children }) => {
     error,
     isAuthenticated,
     login,
-    qrLogin,
+    tokenLogin,
     logout,
     validateAndLoadUser,
     clearError: () => setError(null),

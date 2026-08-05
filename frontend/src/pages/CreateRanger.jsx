@@ -17,7 +17,7 @@ export default function CreateRanger({ onUserCreated }) {
     role: 'technician',
   });
   const [createdUser, setCreatedUser] = useState(null);
-  const [showQR, setShowQR] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleCreateUser = async (e) => {
@@ -69,11 +69,10 @@ export default function CreateRanger({ onUserCreated }) {
         criminalRecord: createForm.criminalRecord,
         healthIssues: createForm.healthIssues,
         role: result.role,
-        qr_token: result.qr_token,
-        qr_expires_at: result.qr_token_expires_at || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        qr_image_url: result.qr_image_url
+        token: result.token,
+        token_expires_at: result.token_expires_at || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
       });
-      setShowQR(true);
+      setShowSuccess(true);
       setCreateForm({ email: '', password: '', fullName: '', age: '', maritalStatus: 'single', criminalRecord: false, healthIssues: false, role: 'technician' });
       
       // Call parent callback if provided
@@ -88,40 +87,15 @@ export default function CreateRanger({ onUserCreated }) {
     }
   };
 
-  const handleDownloadQR = () => {
-    console.log('Download QR clicked');
-    console.log('createdUser:', createdUser);
-    console.log('qr_image_url exists:', !!createdUser?.qr_image_url);
-    
-    if (createdUser?.qr_image_url) {
-      try {
-        const link = document.createElement('a');
-        // qr_image_url already contains the data:image/png;base64, prefix
-        link.href = createdUser.qr_image_url;
-        link.download = `qr-${createdUser.email}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        console.log('QR download triggered');
-      } catch (err) {
-        console.error('Error downloading QR:', err);
-        alert(`Failed to download QR: ${err.message}`);
-      }
-    } else {
-      console.error('QR code image not available in createdUser:', createdUser);
-      alert('QR code image not available. Please try creating the user again.');
-    }
-  };
-
-  const handleCopyQRToken = () => {
-    navigator.clipboard.writeText(createdUser?.qr_token);
-    alert('QR token copied to clipboard!');
+  const handleCopyToken = () => {
+    navigator.clipboard.writeText(createdUser?.token);
+    alert('Token copied to clipboard!');
   };
 
   return (
     <DashboardLayout title="CREATE RANGER" subtitle="Onboard a new ranger operative" navigation={<AdminNavigation />}>
     <div style={{ maxWidth: '600px', margin: '0 auto', padding: '0 1rem' }}>
-      {createdUser && showQR && (
+      {createdUser && showSuccess && (
         <div style={{
           position: 'fixed',
           top: '0',
@@ -145,17 +119,6 @@ export default function CreateRanger({ onUserCreated }) {
               User Created Successfully
             </h3>
             
-            <div style={{ marginBottom: '1rem' }}>
-              {createdUser.qr_image_url && (
-                <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
-                  <img
-                    src={createdUser.qr_image_url}
-                    alt="QR Code"
-                    style={{ maxWidth: '200px', height: 'auto' }}
-                  />
-                </div>
-              )}
-              
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div>
                   <p style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.7)', margin: '0 0 0.25rem 0' }}>
@@ -177,16 +140,16 @@ export default function CreateRanger({ onUserCreated }) {
                 
                 <div>
                   <p style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.7)', margin: '0 0 0.25rem 0' }}>
-                    <strong>QR Expires:</strong>
+                    <strong>Token Expires:</strong>
                   </p>
                   <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.9rem', color: '#ffffff', margin: '0' }}>
-                    {new Date(createdUser.qr_expires_at).toLocaleDateString()}
+                    {new Date(createdUser.token_expires_at).toLocaleDateString()}
                   </p>
                 </div>
                 
                 <div>
                   <p style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.7)', margin: '0 0 0.5rem 0' }}>
-                    <strong>QR Token:</strong>
+                    <strong>Login Token:</strong>
                   </p>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <code style={{
@@ -200,10 +163,10 @@ export default function CreateRanger({ onUserCreated }) {
                       fontSize: '0.8rem',
                       wordBreak: 'break-all',
                     }}>
-                      {createdUser.qr_token}
+                      {createdUser.token}
                     </code>
                     <Button
-                      onClick={handleCopyQRToken}
+                      onClick={handleCopyToken}
                       variant="default"
                       size="sm"
                       style={{
@@ -215,21 +178,11 @@ export default function CreateRanger({ onUserCreated }) {
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div style={{ display: 'flex', gap: '1rem' }}>
+              <div style={{ display: 'flex', gap: '1rem' }}>
+
               <Button
-                onClick={handleDownloadQR}
-                variant="default"
-                size="default"
-                style={{
-                  flex: 1,
-                }}
-              >
-                Download QR Code
-              </Button>
-              <Button
-                onClick={() => setShowQR(false)}
+                onClick={() => setShowSuccess(false)}
                 variant="outline"
                 size="default"
                 style={{
@@ -428,7 +381,7 @@ export default function CreateRanger({ onUserCreated }) {
             size="lg"
             style={{ width: '100%' }}
           >
-            {loading ? 'Creating...' : 'Create User & Generate QR'}
+            {loading ? 'Creating...' : 'Create User'}
           </Button>
         </form>
       </Card>

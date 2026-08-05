@@ -1,4 +1,5 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+import apiClient from './api';
 
 export const knowledgeCrystalService = {
   /**
@@ -21,20 +22,7 @@ export const knowledgeCrystalService = {
         metadata: data.metadata || data.doc_upload?.metadata || {},
       };
 
-      const response = await fetch(`${API_BASE_URL}/kb/create`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Upload failed');
-      }
-
-      return response.json();
+      return await apiClient.post('/kb/create', payload);
     } catch (error) {
       console.error('Upload error:', error);
       throw error;
@@ -60,13 +48,7 @@ export const knowledgeCrystalService = {
         filters.tags.forEach(tag => params.append('tags', tag));
       }
 
-      const response = await fetch(`${API_BASE_URL}/kb/pages?${params}`);
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch documents');
-      }
-
-      return response.json();
+      return await apiClient.get(`/kb/pages?${params}`);
     } catch (error) {
       console.error('Fetch documents error:', error);
       throw error;
@@ -80,16 +62,7 @@ export const knowledgeCrystalService = {
    */
   getDocument: async (pageId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/kb/page/${pageId}`);
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error('Document not found');
-        }
-        throw new Error('Failed to get document');
-      }
-
-      return response.json();
+      return await apiClient.get(`/kb/page/${pageId}`);
     } catch (error) {
       console.error('Get document error:', error);
       throw error;
@@ -103,15 +76,7 @@ export const knowledgeCrystalService = {
    */
   deleteDocument: async (pageId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/kb/page/${pageId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete document');
-      }
-
-      return response.json();
+      return await apiClient.delete(`/kb/page/${pageId}`);
     } catch (error) {
       console.error('Delete document error:', error);
       throw error;
@@ -135,13 +100,7 @@ export const knowledgeCrystalService = {
         filters.tags.forEach(tag => params.append('tags', tag));
       }
 
-      const response = await fetch(`${API_BASE_URL}/kb/search?${params}`);
-
-      if (!response.ok) {
-        throw new Error('Search failed');
-      }
-
-      return response.json();
+      return await apiClient.get(`/kb/search?${params}`);
     } catch (error) {
       console.error('Search error:', error);
       throw error;
@@ -201,7 +160,7 @@ export const knowledgeCrystalService = {
                 const parsed = JSON.parse(dataStr);
                 onChunk(parsed);
               } catch (e) {
-                console.warn('Failed to parse SSE data:', dataStr);
+                console.warn('Failed to parse SSE data:', dataStr, e);
               }
             }
           }
@@ -256,13 +215,7 @@ export const knowledgeCrystalService = {
    */
   getStats: async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/kb/stats`);
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch stats');
-      }
-
-      return response.json();
+      return await apiClient.get('/kb/stats');
     } catch (error) {
       console.error('Get stats error:', error);
       throw error;

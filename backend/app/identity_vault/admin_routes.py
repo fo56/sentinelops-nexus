@@ -15,7 +15,7 @@ from .models import (
     AdminCreateUserRequest, AdminCreateUserResponse,
     UserResponse, IdentityLogResponse
 )
-from .services import UserService, generate_qr_with_token
+from .services import UserService, generate_login_token
 
 logger = logging.getLogger(__name__)
 
@@ -35,16 +35,14 @@ async def create_ranger_user(
     Process:
     1. Admin fills in ranger details (name, email, password, role, etc.)
     2. System creates user account with ACTIVE status
-    3. QR token is generated that includes:
+    3. Login token is generated that includes:
        - User ID
        - Email
        - Expiration time (default 30 days from creation)
-    4. QR code image is generated from the token
-    5. Admin can display QR to ranger or send to them
     
     After this, the Ranger can:
     - Use email + password to login via /auth/ranger/login
-    - Scan QR code to login via /auth/qr/login
+    - Use token to login via /auth/token-login
     
     Args:
         request: User creation request with details
@@ -57,8 +55,7 @@ async def create_ranger_user(
         - email
         - full_name
         - role (technician or agent)
-        - qr_token (for frontend to generate QR)
-        - qr_image_url (base64 encoded QR code image)
+        - token (for frontend to display)
         - message
     """
     try:
@@ -75,25 +72,24 @@ async def create_ranger_user(
             health_issues=request.health_issues
         )
         
-        # Generate QR token and QR code
-        qr_token, qr_image, login_url = generate_qr_with_token(
+        # Generate token
+        token = generate_login_token(
             str(user["_id"]),
             request.email
         )
         
-        # Set QR token expiration (default 30 days)
-        qr_token_expires_at = datetime.utcnow() + timedelta(days=30)
+        # Set token expiration (default 30 days)
+        token_expires_at = datetime.utcnow() + timedelta(days=30)
         
-        # Save QR token to user with expiration
+        # Save token to user with expiration
         collection = db["users"]
         await collection.update_one(
             {"_id": user["_id"]},
             {
                 "$set": {
-                    "qr_token": qr_token,
-                    "qr_login_url": login_url,
-                    "qr_token_expires_at": qr_token_expires_at,
-                    "qr_created_at": datetime.utcnow()
+                    "token": token,
+                    "token_expires_at": token_expires_at,
+                    "token_created_at": datetime.utcnow()
                 }
             }
         )
@@ -101,7 +97,7 @@ async def create_ranger_user(
         # Log admin action
         logger.info(
             f" Admin {current_admin['email']} created new ranger: {request.email} "
-            f"(Role: {request.role.value}) | QR expires: {qr_token_expires_at}"
+            f"(Role: {request.role.value}) | Token expires: {token_expires_at}"
         )
         
         return AdminCreateUserResponse(
@@ -109,10 +105,9 @@ async def create_ranger_user(
             email=user["email"],
             full_name=user["full_name"],
             role=user["role"],
-            qr_token=qr_token,
-            qr_image_url=qr_image,
+            token=token,
             message=f" Successfully created ranger: {request.full_name} | "
-                    f"QR code valid for 30 days | Rangers can now login with email/password or QR"
+                    f"Token valid for 30 days | Rangers can now login with email/password or token"
         )
     
     except HTTPException:
@@ -172,7 +167,8 @@ async def get_all_users(
                 "criminal_record": user.get("criminal_record", False),
                 "health_issues": user.get("health_issues", False),
                 "created_at": user.get("created_at"),
-                "last_login": user.get("last_login")
+                "last_login": user.get("last_login"),
+                "token": user.get("token")
             }
             response_users.append(response_dict)
         

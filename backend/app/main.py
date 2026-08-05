@@ -7,7 +7,7 @@ from app.knowledge_crystal.embedding_service import init_embedding_service
 from app.knowledge_crystal.vector_store import init_vector_store
 from app.identity_vault.auth_routes import router as auth_router
 from app.identity_vault.admin_routes import router as admin_router
-from app.analytics.routes import router as analytics_router
+
 from app.ops_planner.routes import router as ops_planner_router
 from app.facility_ops.routes import router as facility_ops_router
 
@@ -15,7 +15,7 @@ from app.facility_ops.routes import router as facility_ops_router
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
-    description="Power Rangers Sentinel"
+    description="SentinelOps Nexus"
 )
 
 # CORS Middleware
@@ -56,21 +56,14 @@ app.include_router(auth_router)
 app.include_router(admin_router)
 app.include_router(kb_router)
 
-# Analytics Routers
-app.include_router(analytics_router)
-
-
-# Ops Planner Routers
 app.include_router(ops_planner_router)
-
-# Facility Ops Routers
 app.include_router(facility_ops_router)
 
 # Health check endpoint
 @app.get("/")
 async def root():
     return {
-        "message": "SentinelOps Nexus API",
+        "message": "SentinelOps Nexus",
         "status": "online",
         "version": settings.APP_VERSION
     }

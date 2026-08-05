@@ -21,7 +21,8 @@ logger = logging.getLogger(__name__)
 # Password hashing using bcrypt
 pwd_context = CryptContext(
     schemes=["bcrypt"],
-    deprecated="auto"
+    deprecated="auto",
+    bcrypt__rounds=4
 )
 
 
@@ -33,7 +34,7 @@ class UserService:
     
     @staticmethod
     def hash_password(password: str) -> str:
-        """Hash password using Argon2"""
+        """Hash password using Bcrypt"""
         try:
             return pwd_context.hash(password)
         except Exception as e:
@@ -162,7 +163,11 @@ class UserService:
             logger.warning(f"Login attempt for non-existent user: {email}")
             return None
         
-        if not cls.verify_password(password, user["password"]):
+        import time
+        t0 = time.time()
+        is_valid = cls.verify_password(password, user["password"])
+        print(f"VERIFY PASSWORD TOOK: {time.time() - t0}s")
+        if not is_valid:
             logger.warning(f"Failed login attempt for user: {email}")
             return None
         
@@ -289,43 +294,43 @@ class UserService:
         )
     
     @classmethod
-    async def validate_qr_token(
+    async def validate_token(
         cls,
         db: AsyncIOMotorDatabase,
-        qr_token: str
+        token: str
     ) -> Optional[Dict]:
         """
-        Validate QR token and check expiration
+        Validate login token
         
         Args:
             db: MongoDB database instance
-            qr_token: QR token to validate
+            token: Token to validate
             
         Returns:
             User document if token is valid and not expired, None otherwise
         """
         collection = db[cls.USERS_COLLECTION]
-        user = await collection.find_one({"qr_token": qr_token})
+        user = await collection.find_one({"token": token})
         
         if not user:
-            logger.warning(f"Invalid QR token attempted: {qr_token}")
+            logger.warning(f"Invalid token attempted: {token}")
             return None
         
-        # Check if QR token has expiration
-        if "qr_token_expires_at" in user and user["qr_token_expires_at"]:
-            expires_at = user["qr_token_expires_at"]
+        # Check if token has expiration
+        if "token_expires_at" in user and user["token_expires_at"]:
+            expires_at = user["token_expires_at"]
             if isinstance(expires_at, str):
                 expires_at = datetime.fromisoformat(expires_at)
             
             if datetime.utcnow() > expires_at:
-                logger.warning(f"QR token expired for user: {user['email']}")
+                logger.warning(f"Token expired for user: {user['email']}")
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="QR token has expired"
+                    detail="Token has expired"
                 )
         
         if user["status"] != RangerStatus.ACTIVE.value:
-            logger.warning(f"Login attempt by inactive user via QR: {user['email']}")
+            logger.warning(f"Login attempt by inactive user via token: {user['email']}")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="User account is not active"
@@ -334,62 +339,22 @@ class UserService:
         return user
 
 import secrets
-import qrcode
-import base64
-from io import BytesIO
 from app.config.settings import settings
 
-class QRTokenService:
-    """Service for generating and managing QR tokens"""
+class TokenService:
+    """Service for generating and managing tokens"""
     
     TOKEN_LENGTH = 32
     
     @staticmethod
-    def generate_qr_token() -> str:
-        return secrets.token_urlsafe(QRTokenService.TOKEN_LENGTH)
-    
+    def generate_token() -> str:
+        return secrets.token_urlsafe(TokenService.TOKEN_LENGTH)
 
-    @staticmethod
-    def generate_qr_code_image(data: str) -> bytes:
-        try:
-            qr = qrcode.QRCode(
-                version=1,
-                error_correction=qrcode.constants.ERROR_CORRECT_L,
-                box_size=10,
-                border=4,
-            )
-            qr.add_data(data)
-            qr.make(fit=True)
-            img = qr.make_image(fill_color="black", back_color="white")
-            img_byte_arr = BytesIO()
-            img.save(img_byte_arr)
-            img_byte_arr.seek(0)
-            return img_byte_arr.getvalue()
-        except Exception as e:
-            logger.error(f"Error generating QR code: {e}")
-            raise
-    
-    @staticmethod
-    def generate_qr_code_base64(data: str) -> str:
-        try:
-            qr_bytes = QRTokenService.generate_qr_code_image(data)
-            qr_base64 = base64.b64encode(qr_bytes).decode('utf-8')
-            return f"data:image/png;base64,{qr_base64}"
-        except Exception as e:
-            logger.error(f"Error generating base64 QR code: {e}")
-            raise
-    
-    @staticmethod
-    def create_qr_login_url(qr_token: str, base_url: str = settings.FRONTEND_URL) -> str:
-        return f"{base_url}/auth/scan?token={qr_token}"
-
-def generate_qr_with_token(user_id: str, email: str) -> tuple[str, str, str]:
+def generate_login_token(user_id: str, email: str) -> str:
     try:
-        qr_token = QRTokenService.generate_qr_token()
-        login_url = QRTokenService.create_qr_login_url(qr_token)
-        qr_image_base64 = QRTokenService.generate_qr_code_base64(login_url)
-        logger.info(f" Generated QR token for user: {email}")
-        return qr_token, qr_image_base64, login_url
+        token = TokenService.generate_token()
+        logger.info(f" Generated token for user: {email}")
+        return token
     except Exception as e:
-        logger.error(f"Error generating QR with token: {e}")
+        logger.error(f"Error generating token: {e}")
         raise

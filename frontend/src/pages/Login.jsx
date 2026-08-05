@@ -70,12 +70,12 @@ export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
-  const [qrToken, setQrToken] = useState('');
+  const [token, setToken] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [loginMethod, setLoginMethod] = useState('password');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const { login, qrLogin } = useAuth();
+  const { login, tokenLogin } = useAuth();
   const navigate = useNavigate();
 
   const resetForm = () => {
@@ -83,7 +83,7 @@ export default function Login() {
     setUsername('');
     setPassword('');
     setEmail('');
-    setQrToken('');
+    setToken('');
   };
 
   const routeByRole = (response, fallbackRole) => {
@@ -118,21 +118,21 @@ export default function Login() {
     }
   };
 
-  const handleQRLogin = async (e) => {
+  const handleTokenLogin = async (e) => {
     e.preventDefault();
     setError('');
 
-    if (!qrToken.trim()) {
-      setError('Please enter or scan QR code');
+    if (!token.trim()) {
+      setError('Please enter your login token');
       return;
     }
 
     setIsLoading(true);
     try {
-      const response = await qrLogin(qrToken);
+      const response = await tokenLogin(token);
       routeByRole(response, 'ranger');
     } catch (err) {
-      setError(err.message || 'QR authentication failed');
+      setError(err.message || 'Token authentication failed');
     } finally {
       setIsLoading(false);
     }
@@ -217,10 +217,10 @@ export default function Login() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setLoginMethod('qr'); setError(''); }}
-                  className={`login-method-btn ${loginMethod === 'qr' ? 'active' : ''}`}
+                  onClick={() => { setLoginMethod('token'); setError(''); }}
+                  className={`login-method-btn ${loginMethod === 'token' ? 'active' : ''}`}
                 >
-                  QR CODE
+                  TOKEN LOGIN
                 </button>
               </div>
             )}
@@ -259,35 +259,29 @@ export default function Login() {
               />
             )}
 
-            {/* Ranger QR login form */}
-            {selectedRole === 'ranger' && loginMethod === 'qr' && (
-              <form onSubmit={handleQRLogin} className="login-form">
+            {/* Ranger Token login form */}
+            {selectedRole === 'ranger' && loginMethod === 'token' && (
+              <form onSubmit={handleTokenLogin} className="login-form">
                 <div className="login-form-group">
-                  <label className="login-label">QR TOKEN / SCAN CODE</label>
+                  <label className="login-label">LOGIN TOKEN</label>
                   <Input
                     type="text"
-                    placeholder="Paste QR token here or scan"
-                    value={qrToken}
-                    onChange={(e) => setQrToken(e.target.value)}
+                    placeholder="Paste login token here"
+                    value={token}
+                    onChange={(e) => setToken(e.target.value)}
                     required
                   />
-                </div>
-
-                <div className="login-qr-info">
-                  Scan your QR code using your device camera
-                  <br />
-                  <span className="login-qr-demo">Demo token: RANGER-QR-TOKEN</span>
                 </div>
 
                 <Button type="submit" variant="cyber" size="xl" style={{ width: '100%' }} disabled={isLoading}>
                   {isLoading ? (
                     <span className="login-btn-content">
                       <div className="login-spinner" />
-                      SCANNING...
+                      AUTHENTICATING...
                     </span>
                   ) : (
                     <span className="login-btn-content">
-                      AUTHENTICATE VIA QR
+                      AUTHENTICATE WITH TOKEN
                       <ChevronRight size={18} />
                     </span>
                   )}

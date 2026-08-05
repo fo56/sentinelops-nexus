@@ -17,7 +17,7 @@ export default function AdminDashboard() {
   // Fetch dashboard stats
   const fetchStats = async () => {
     try {
-      const response = await apiClient.get('/api/analytics/dashboard-stats');
+      const response = await apiClient.get('/api/ops-planner/dashboard-stats');
       setStats(response);
       setLoading(false);
     } catch (error) {

@@ -51,8 +51,7 @@ async def create_indexes():
     try:
         # Users collection indexes
         await db.db.users.create_index("email", unique=True)
-        # qr_token is sparse (only index non-null values) to avoid duplicates on NULL
-        await db.db.users.create_index("qr_token", unique=True, sparse=True)
+
         
         # Identity logs collection indexes
         await db.db.identity_logs.create_index("email")

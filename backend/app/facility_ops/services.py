@@ -63,7 +63,7 @@ class FacilityOpsService:
         """Update technician's score"""
         await self.users_collection.update_one(
             {"_id": ObjectId(technician_id)},
-            {"$inc": {"technician_score": score_change}}
+            {"$inc": {"score": score_change}}
         )
     
     async def _generate_ai_suggestions(self, issue: Dict) -> List[Dict]:
@@ -390,17 +390,17 @@ class FacilityOpsService:
         result = []
         for tech in technicians:
             # Initialize score if not present
-            if "technician_score" not in tech:
+            if "score" not in tech:
                 await self.users_collection.update_one(
                     {"_id": tech["_id"]},
-                    {"$set": {"technician_score": 100}}
+                    {"$set": {"score": 100}}
                 )
-                tech["technician_score"] = 100
+                tech["score"] = 100
             
             result.append({
                 "id": str(tech["_id"]),
                 "name": tech.get("full_name", "Unknown"),
-                "score": tech.get("technician_score", 100),
+                "score": tech.get("score", 100),
                 "status": tech.get("status", "active")
             })
         

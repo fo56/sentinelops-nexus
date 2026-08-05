@@ -11,6 +11,7 @@ import { CreateMissionModal } from '../components/OpsPlanner/CreateMissionModal'
 import { AssignAgentModal } from '../components/OpsPlanner/AssignAgentModal';
 import { SubmitMissionModal } from '../components/OpsPlanner/SubmitMissionModal';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { useAuth } from '../hooks/useAuth';
 
 export default function OpsPlanner() {
   const [missions, setMissions] = useState([]);
@@ -26,14 +27,11 @@ export default function OpsPlanner() {
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   
   const [selectedMission, setSelectedMission] = useState(null);
-  const [currentUser, setCurrentUser] = useState(null);
+  const { user: currentUser } = useAuth();
 
   // Real-time WebSocket connection for live mission updates
-  const { messages: wsMessages, isConnected: wsConnected, onReconnect } = useWebSocket('/api/ops-planner/ws');
+  const { messages: wsMessages, isConnected: wsConnected, onReconnect, joinMission } = useWebSocket('/api/ops-planner/ws');
 
-  useEffect(() => {
-    fetchCurrentUser();
-  }, []);
 
   useEffect(() => {
     if (currentUser) {
@@ -64,14 +62,6 @@ export default function OpsPlanner() {
     });
   }, [onReconnect, currentUser]);
 
-  const fetchCurrentUser = async () => {
-    try {
-      const response = await apiClient.get('/auth/me');
-      setCurrentUser(response);
-    } catch (err) {
-      console.error('Error fetching current user:', err);
-    }
-  };
 
   const fetchMissions = async () => {
     try {
@@ -85,6 +75,7 @@ export default function OpsPlanner() {
           ...response.completed_missions.map(m => ({ ...m, id: m._id || m.id }))
         ];
         setMissions(allMissions);
+        allMissions.forEach(m => joinMission(m.id));
         setFailedMissionsData(response.failed_missions.map(m => ({ ...m, id: m._id || m.id })));
       } else {
         const response = await apiClient.get('/api/ops-planner/board');
@@ -97,6 +88,7 @@ export default function OpsPlanner() {
           allMissions.push(...mappedMissions);
         });
         setMissions(allMissions);
+        allMissions.forEach(m => joinMission(m.id));
       }
     } catch (err) {
       console.error('Error fetching missions:', err);
