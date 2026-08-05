@@ -69,26 +69,6 @@ async def get_current_user(
     return user
 
 
-async def get_current_active_user(
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Verify user is active
-    
-    Args:
-        current_user: User from get_current_user dependency
-        
-    Returns:
-        Active user document
-    """
-    if current_user.get("status") != "active":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User account is inactive"
-        )
-    return current_user
-
-
 async def get_current_admin(
     current_user: dict = Depends(get_current_user)
 ):
@@ -120,7 +100,7 @@ def require_role(required_role: str):
     Returns:
         Dependency function
     """
-    async def role_checker(current_user: dict = Depends(get_current_active_user)):
+    async def role_checker(current_user: dict = Depends(get_current_user)):
         user_role = current_user.get("role")
         
         # Role hierarchy: admin > technician > agent

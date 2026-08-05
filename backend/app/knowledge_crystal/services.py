@@ -8,7 +8,7 @@ from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase, AsyncIOMotorCollection
 from .models import (
     KBPageCreate, KBPageUpdate, KBPageResponse,
-    SearchQuery, SearchResult, QueryRequest, QueryResponse,
+    SearchQuery, SearchResult,
     KBDocumentUpload, ChatQueryRequest, ChatQueryResponse, DocumentCategory
 )
 from .embedding_service import get_embedding_service
@@ -373,100 +373,6 @@ class KBSearchService:
         return results
 
 
-class KBRAGService:
-    """Service for Retrieval-Augmented Generation (Q&A)"""
-    
-    def __init__(self, db: AsyncIOMotorDatabase):
-        self.db = db
-        self.page_collection: AsyncIOMotorCollection = db["kb_pages"]
-        self.search_service = KBSearchService(db)
-    
-    async def query(self, query_req: QueryRequest) -> QueryResponse:
-        """
-        Answer a question using RAG pipeline
-        
-        Args:
-            query_req: Query request with question
-        
-        Returns:
-            Query response with answer and sources
-        """
-        # Search for relevant chunks
-        search_query = SearchQuery(
-            query=query_req.question,
-            limit=query_req.limit,
-            tags=query_req.tags,
-            visibility=query_req.visibility
-        )
-        
-        sources = await self.search_service.search(search_query, limit=query_req.limit)
-        
-        if not sources:
-            return QueryResponse(
-                answer="No relevant information found in the knowledge base.",
-                sources=[],
-                confidence=0.0,
-                model_used=settings.OLLAMA_MODEL
-            )
-        
-        # Prepare context from retrieved chunks
-        context = "\n".join([
-            f"[Source: {s.title}]\n{s.chunk_snippet}\n"
-            for s in sources
-        ])
-        
-        # Create RAG prompt
-        rag_prompt = f"""You are a helpful assistant. Answer the following question using ONLY the provided context. 
-If the answer is not in the context, say "I don't have enough information to answer this question."
-
-Context:
-{context}
-
-Question: {query_req.question}
-
-Please provide a clear, concise answer citing the relevant sources."""
-        
-        try:
-            # Generate answer using Ollama
-            import requests
-            
-            response = requests.post(
-                f"{settings.OLLAMA_BASE_URL}/api/generate",
-                json={
-                    "model": settings.OLLAMA_MODEL,
-                    "prompt": rag_prompt,
-                    "stream": False,
-                    "options": {
-                        "num_predict": 500,
-                        "temperature": 0.1
-                    }
-                },
-                timeout=120
-            )
-            
-            if response.status_code == 200:
-                answer = response.json()["response"].strip()
-            else:
-                answer = f"Error: Ollama API returned status {response.status_code}"
-            
-            # Calculate confidence based on similarity scores
-            avg_confidence = sum(s.similarity_score for s in sources) / len(sources) if sources else 0
-            
-            return QueryResponse(
-                answer=answer,
-                sources=sources,
-                confidence=min(1.0, avg_confidence),
-                model_used=settings.OLLAMA_MODEL
-            )
-        
-        except Exception as e:
-            print(f" Error generating answer: {e}")
-            return QueryResponse(
-                answer=f"Error generating answer: {str(e)}",
-                sources=sources,
-                confidence=0.0,
-                model_used=settings.OLLAMA_MODEL
-            )
 
 
 class KBChatService:

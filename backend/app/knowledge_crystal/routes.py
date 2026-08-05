@@ -9,11 +9,11 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from .models import (
     KBPageCreate, KBPageUpdate, KBPageResponse,
-    SearchQuery, SearchResult, QueryRequest, QueryResponse,
+    SearchQuery, SearchResult,
     KBDocumentUpload, ChatQueryRequest, ChatQueryResponse, DocumentCategory
 )
 from .services import (
-    KBPageService, KBSearchService, KBRAGService,
+    KBPageService, KBSearchService,
     KBChatService, KBDocumentService
 )
 from app.utils.dependencies import get_db, get_current_user
@@ -241,31 +241,6 @@ async def kb_chat(
         media_type="text/event-stream"
     )
 
-
-@router.post("/query", response_model=dict)
-async def kb_query(
-    query_req: QueryRequest,
-    db: AsyncIOMotorDatabase = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Ask a question and get an AI-generated answer using RAG (Legacy endpoint)
-    
-    This endpoint:
-    1. Converts question to embedding
-    2. Retrieves relevant chunks from vector DB
-    3. Uses Ollama LLM to synthesize answer from chunks
-    4. Returns answer with source citations
-    
-    Note: For new implementations, use /chat endpoint instead
-    """
-    service = KBRAGService(db)
-    response = await service.query(query_req)
-    
-    return {
-        "message": "Query processed successfully",
-        "data": response
-    }
 
 
 @router.post("/upload-document", response_model=dict)

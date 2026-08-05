@@ -41,13 +41,8 @@ class MissionService:
         Create new mission (Admin only)
         Mission starts in PENDING status
         """
-        # Get admin user info
+        # Get admin user info for activity log
         admin = await self.users_collection.find_one({"email": created_by})
-        if not admin or admin.get("role") != "admin":
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only admins can create missions"
-            )
 
         mission_doc = {
             "title": mission_data.title,
@@ -134,13 +129,8 @@ class MissionService:
         """
         Update mission details (Admin only)
         """
-        # Verify admin
+        # Get admin user info for activity log
         admin = await self.users_collection.find_one({"email": updated_by})
-        if not admin or admin.get("role") != "admin":
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only admins can update missions"
-            )
 
         # Validate mission_id format
         try:
@@ -195,13 +185,8 @@ class MissionService:
         """
         Delete/Abort mission (Admin only)
         """
-        # Verify admin
+        # Get admin user info for activity log
         admin = await self.users_collection.find_one({"email": deleted_by})
-        if not admin or admin.get("role") != "admin":
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only admins can delete missions"
-            )
 
         # Validate mission_id format
         try:
@@ -259,13 +244,8 @@ class MissionService:
         Assign mission to an agent (Admin only)
         Mission moves from PENDING to IN_PROGRESS
         """
-        # Verify admin
+        # Get admin user info for activity log
         admin = await self.users_collection.find_one({"email": assigned_by})
-        if not admin or admin.get("role") != "admin":
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only admins can assign missions"
-            )
 
         # Validate mission_id format
         try:

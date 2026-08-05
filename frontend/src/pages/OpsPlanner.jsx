@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Upload, X } from 'lucide-react';
@@ -10,6 +10,7 @@ import { MissionCard, CompletedMissionCard } from '../components/OpsPlanner/Miss
 import { CreateMissionModal } from '../components/OpsPlanner/CreateMissionModal';
 import { AssignAgentModal } from '../components/OpsPlanner/AssignAgentModal';
 import { SubmitMissionModal } from '../components/OpsPlanner/SubmitMissionModal';
+import { useWebSocket } from '../hooks/useWebSocket';
 
 export default function OpsPlanner() {
   const [missions, setMissions] = useState([]);
@@ -27,6 +28,9 @@ export default function OpsPlanner() {
   const [selectedMission, setSelectedMission] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
 
+  // Real-time WebSocket connection for live mission updates
+  const { messages: wsMessages, isConnected: wsConnected, onReconnect } = useWebSocket('/api/ops-planner/ws');
+
   useEffect(() => {
     fetchCurrentUser();
   }, []);
@@ -36,6 +40,29 @@ export default function OpsPlanner() {
       fetchMissions();
     }
   }, [currentUser]);
+
+  // Auto-refresh board when a WebSocket mission event arrives
+  useEffect(() => {
+    if (wsMessages.length > 0 && currentUser) {
+      const latest = wsMessages[0];
+      const missionEventTypes = [
+        'mission_created', 'mission_assigned', 'mission_moved',
+        'mission_updated', 'mission_deleted', 'mission_completed', 'mission_failed'
+      ];
+      if (missionEventTypes.includes(latest.type)) {
+        fetchMissions();
+      }
+    }
+  }, [wsMessages]);
+
+  // On WebSocket reconnection, rehydrate stale data with a fresh REST fetch
+  useEffect(() => {
+    onReconnect(() => {
+      if (currentUser) {
+        fetchMissions();
+      }
+    });
+  }, [onReconnect, currentUser]);
 
   const fetchCurrentUser = async () => {
     try {

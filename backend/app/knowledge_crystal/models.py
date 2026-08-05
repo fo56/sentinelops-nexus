@@ -113,20 +113,3 @@ class ChatQueryResponse(BaseModel):
     matched_documents: List[SearchResult] = Field(..., description="Matched documents from Knowledge Crystal")
     confidence: float = Field(..., ge=0, le=1, description="Confidence level of answer")
     model_used: str = Field(default="llama3.2:3b", description="Model used for generation")
-
-
-class QueryRequest(BaseModel):
-    """Schema for Q&A queries (Legacy support)"""
-    question: str = Field(..., min_length=5, description="Question to ask")
-    limit: int = Field(default=5, ge=1, le=20, description="Max context chunks to retrieve")
-    category: Optional[DocumentCategory] = Field(None, description="Filter by category")
-    visibility: Optional[str] = None
-    tags: Optional[List[str]] = None
-
-
-class QueryResponse(BaseModel):
-    """Schema for Q&A response"""
-    answer: str = Field(..., description="AI-generated answer")
-    sources: List[SearchResult] = Field(..., description="Source documents used")
-    confidence: float = Field(..., ge=0, le=1, description="Confidence level of answer")
-    model_used: str = Field(default="llama3.2:3b", description="Model used for generation")

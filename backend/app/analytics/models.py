@@ -109,14 +109,3 @@ class MetricDataPoint(BaseModel):
     category: Optional[str]
     user_id: Optional[str]
 
-
-class DashboardWidget(BaseModel):
-    """Dashboard widget configuration"""
-    widget_id: str
-    widget_type: str  # chart, gauge, table, etc.
-    title: str
-    metric: str
-    time_range: TimeRange
-    refresh_interval: int = Field(description="In seconds")
-    position: Optional[Dict[str, int]]  # x, y coordinates
-    size: Optional[Dict[str, int]]  # width, height

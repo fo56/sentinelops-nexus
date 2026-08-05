@@ -11,6 +11,24 @@ export function useWebSocket(endpoint) {
   const reconnectTimeoutRef = useRef(null);
   const maxRetries = 5;
   const retryCount = useRef(0);
+  const joinedRoomsRef = useRef(new Set());
+  const onReconnectRef = useRef(null);
+
+  const sendMessage = useCallback((data) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify(data));
+    }
+  }, []);
+
+  const joinMission = useCallback((missionId) => {
+    sendMessage({ type: 'join_mission', mission_id: missionId });
+    joinedRoomsRef.current.add(missionId);
+  }, [sendMessage]);
+
+  const leaveMission = useCallback((missionId) => {
+    sendMessage({ type: 'leave_mission', mission_id: missionId });
+    joinedRoomsRef.current.delete(missionId);
+  }, [sendMessage]);
 
   const connect = useCallback(() => {
     const token = localStorage.getItem('access_token');
@@ -33,7 +51,20 @@ export function useWebSocket(endpoint) {
         console.log('WebSocket connected');
         setIsConnected(true);
         setError(null);
-        retryCount.current = 0; // Reset retries on successful connection
+        
+        const wasReconnect = retryCount.current > 0;
+        retryCount.current = 0;
+        
+        // On reconnection, re-join previously joined rooms
+        if (wasReconnect) {
+          joinedRoomsRef.current.forEach((missionId) => {
+            ws.send(JSON.stringify({ type: 'join_mission', mission_id: missionId }));
+          });
+          // Trigger rehydration callback so consumers can re-fetch stale data
+          if (onReconnectRef.current) {
+            onReconnectRef.current();
+          }
+        }
       };
 
       ws.onmessage = (event) => {
@@ -90,11 +121,20 @@ export function useWebSocket(endpoint) {
     setMessages([]);
   }, []);
 
+  // Register a reconnection callback for rehydration
+  const onReconnect = useCallback((callback) => {
+    onReconnectRef.current = callback;
+  }, []);
+
   return {
     messages,
     isConnected,
     error,
     clearMessages,
-    setMessages
+    setMessages,
+    sendMessage,
+    joinMission,
+    leaveMission,
+    onReconnect
   };
 }

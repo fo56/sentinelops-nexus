@@ -1,5 +1,6 @@
 """
 Analytics Services
+Uses MongoDB aggregation pipelines for efficient data processing
 """
 
 from datetime import datetime, timedelta
@@ -13,7 +14,7 @@ from app.analytics.models import (
 
 
 class AnalyticsService:
-    """Advanced Analytics Service"""
+    """Advanced Analytics Service using MongoDB aggregation pipelines"""
     
     def __init__(self, db):
         self.db = db
@@ -46,43 +47,69 @@ class AnalyticsService:
         self, 
         time_range: TimeRange = TimeRange.LAST_7D
     ) -> LoginAnalytics:
-        """Get login statistics"""
+        """Get login statistics using aggregation pipeline"""
         start_date, end_date = self._get_date_range(time_range)
+        date_filter = {'timestamp': {'$gte': start_date, '$lte': end_date}}
         
-        # Query identity logs
-        logs = await self.db['identity_logs'].find({
-            'timestamp': {'$gte': start_date, '$lte': end_date}
-        }).to_list(None)
+        # Single aggregation with $facet for all login metrics
+        pipeline = [
+            {'$match': date_filter},
+            {'$facet': {
+                'totals': [
+                    {'$group': {
+                        '_id': None,
+                        'total': {'$sum': 1},
+                        'successful': {'$sum': {'$cond': ['$login_success', 1, 0]}},
+                        'failed': {'$sum': {'$cond': ['$login_success', 0, 1]}},
+                        'avg_login_time': {'$avg': {'$ifNull': ['$login_duration', 0]}},
+                        'unique_users': {'$addToSet': '$user_id'},
+                        'unique_locations': {'$addToSet': '$ip_address'}
+                    }}
+                ],
+                'device_breakdown': [
+                    {'$group': {
+                        '_id': {'$ifNull': ['$device_type', 'unknown']},
+                        'count': {'$sum': 1}
+                    }}
+                ],
+                'hourly_distribution': [
+                    {'$group': {
+                        '_id': {'$dateToString': {'format': '%H:00', 'date': '$timestamp'}},
+                        'count': {'$sum': 1}
+                    }}
+                ]
+            }}
+        ]
         
-        total_logins = len(logs)
-        successful = sum(1 for log in logs if log.get('login_success', False))
-        failed = total_logins - successful
+        result = await self.db['identity_logs'].aggregate(pipeline).to_list(1)
         
-        unique_users = len(set(log.get('user_id') for log in logs))
-        unique_locations = list(set(log.get('ip_address') for log in logs if log.get('ip_address')))
+        if not result or not result[0]['totals']:
+            return LoginAnalytics(
+                total_logins=0, successful_logins=0, failed_logins=0,
+                success_rate=0.0, average_login_time=0.0, unique_users=0,
+                unique_locations=[], device_breakdown={}, hourly_distribution={}
+            )
         
-        # Device breakdown
-        devices = {}
-        for log in logs:
-            device = log.get('device_type', 'unknown')
-            devices[device] = devices.get(device, 0) + 1
+        data = result[0]
+        totals = data['totals'][0]
+        total = totals['total']
+        successful = totals['successful']
         
-        # Hourly distribution
-        hourly = {}
-        for log in logs:
-            hour = log['timestamp'].strftime('%H:00')
-            hourly[hour] = hourly.get(hour, 0) + 1
+        # Convert arrays to dicts
+        devices = {d['_id']: d['count'] for d in data['device_breakdown']}
+        hourly = {h['_id']: h['count'] for h in data['hourly_distribution']}
         
-        avg_login_time = sum(log.get('login_duration', 0) for log in logs) / max(total_logins, 1)
+        # Filter None from unique locations
+        locations = [loc for loc in totals['unique_locations'] if loc is not None]
         
         return LoginAnalytics(
-            total_logins=total_logins,
+            total_logins=total,
             successful_logins=successful,
-            failed_logins=failed,
-            success_rate=successful / max(total_logins, 1),
-            average_login_time=avg_login_time,
-            unique_users=unique_users,
-            unique_locations=unique_locations[:10],  # Top 10
+            failed_logins=totals['failed'],
+            success_rate=successful / max(total, 1),
+            average_login_time=totals['avg_login_time'] or 0.0,
+            unique_users=len(totals['unique_users']),
+            unique_locations=locations[:10],
             device_breakdown=devices,
             hourly_distribution=hourly
         )
@@ -91,101 +118,149 @@ class AnalyticsService:
         self,
         time_range: TimeRange = TimeRange.LAST_7D
     ) -> UserActivityAnalytics:
-        """Get user activity statistics"""
+        """Get user activity statistics using aggregation pipeline"""
         start_date, end_date = self._get_date_range(time_range)
         
-        users = await self.db['users'].find({}).to_list(None)
-        total_users = len(users)
+        # User counts and role breakdown via aggregation
+        user_pipeline = [
+            {'$facet': {
+                'role_breakdown': [
+                    {'$group': {
+                        '_id': {'$ifNull': ['$role', 'user']},
+                        'count': {'$sum': 1}
+                    }}
+                ],
+                'new_users': [
+                    {'$match': {'created_at': {'$gte': start_date, '$lte': end_date}}},
+                    {'$count': 'count'}
+                ],
+                'total': [
+                    {'$count': 'count'}
+                ]
+            }}
+        ]
         
-        # Get activity
-        activity_logs = await self.db['activity_logs'].find({
-            'timestamp': {'$gte': start_date, '$lte': end_date}
-        }).to_list(None)
+        user_result = await self.db['users'].aggregate(user_pipeline).to_list(1)
+        user_data = user_result[0] if user_result else {}
         
-        active_user_ids = set(log.get('user_id') for log in activity_logs)
-        active_users = len(active_user_ids)
-        inactive_users = total_users - active_users
+        total_users = user_data.get('total', [{}])[0].get('count', 0)
+        new_users = user_data.get('new_users', [{}])[0].get('count', 0) if user_data.get('new_users') else 0
+        role_breakdown = {r['_id']: r['count'] for r in user_data.get('role_breakdown', [])}
         
-        # New users
-        new_users = len(await self.db['users'].find({
-            'created_at': {'$gte': start_date, '$lte': end_date}
-        }).to_list(None))
+        # Activity stats via aggregation
+        activity_pipeline = [
+            {'$match': {'timestamp': {'$gte': start_date, '$lte': end_date}}},
+            {'$facet': {
+                'session_stats': [
+                    {'$group': {
+                        '_id': None,
+                        'total_sessions': {'$sum': 1},
+                        'avg_duration': {'$avg': {'$ifNull': ['$duration', 0]}},
+                        'active_users': {'$addToSet': '$user_id'}
+                    }}
+                ],
+                'hourly_activity': [
+                    {'$group': {
+                        '_id': {'$dateToString': {'format': '%H:00', 'date': '$timestamp'}},
+                        'count': {'$sum': 1}
+                    }},
+                    {'$sort': {'count': -1}},
+                    {'$limit': 5}
+                ]
+            }}
+        ]
         
-        # Role breakdown
-        role_breakdown = {}
-        for user in users:
-            role = user.get('role', 'user')
-            role_breakdown[role] = role_breakdown.get(role, 0) + 1
+        activity_result = await self.db['activity_logs'].aggregate(activity_pipeline).to_list(1)
+        activity_data = activity_result[0] if activity_result else {}
         
-        # Session stats
-        total_sessions = len(activity_logs)
-        avg_session_duration = sum(log.get('duration', 0) for log in activity_logs) / max(total_sessions, 1)
+        session_stats = activity_data.get('session_stats', [{}])
+        stats = session_stats[0] if session_stats else {}
         
-        # Most active hours
-        hourly_activity = {}
-        for log in activity_logs:
-            hour = log['timestamp'].strftime('%H:00')
-            hourly_activity[hour] = hourly_activity.get(hour, 0) + 1
-        
-        most_active_hours = sorted(hourly_activity.items(), key=lambda x: x[1], reverse=True)[:5]
-        most_active_hours = [h[0] for h in most_active_hours]
-        
-        avg_requests = total_sessions / max(active_users, 1)
+        active_users = len(stats.get('active_users', []))
+        total_sessions = stats.get('total_sessions', 0)
+        avg_session_duration = stats.get('avg_duration', 0.0) or 0.0
+        most_active_hours = [h['_id'] for h in activity_data.get('hourly_activity', [])]
         
         return UserActivityAnalytics(
             active_users=active_users,
-            inactive_users=inactive_users,
+            inactive_users=max(0, total_users - active_users),
             new_users=new_users,
             user_roles_breakdown=role_breakdown,
             average_session_duration=avg_session_duration,
             total_sessions=total_sessions,
             most_active_hours=most_active_hours,
-            avg_requests_per_user=avg_requests
+            avg_requests_per_user=total_sessions / max(active_users, 1)
         )
     
     async def get_document_analytics(
         self,
         time_range: TimeRange = TimeRange.LAST_7D
     ) -> DocumentAnalytics:
-        """Get document operation statistics"""
+        """Get document operation statistics using aggregation pipeline"""
         start_date, end_date = self._get_date_range(time_range)
         
-        documents = await self.db['documents'].find({}).to_list(None)
-        total_docs = len(documents)
+        # Document stats via $facet aggregation
+        doc_pipeline = [
+            {'$facet': {
+                'totals': [
+                    {'$group': {
+                        '_id': None,
+                        'total': {'$sum': 1},
+                        'processed': {'$sum': {'$cond': [
+                            {'$eq': ['$processing_status', 'completed']}, 1, 0
+                        ]}},
+                        'total_storage': {'$sum': {'$ifNull': ['$file_size', 0]}}
+                    }}
+                ],
+                'uploaded_in_range': [
+                    {'$match': {'created_at': {'$gte': start_date, '$lte': end_date}}},
+                    {'$count': 'count'}
+                ],
+                'by_type': [
+                    {'$group': {
+                        '_id': {'$ifNull': ['$file_type', 'unknown']},
+                        'count': {'$sum': 1}
+                    }}
+                ],
+                'processing_time': [
+                    {'$match': {'processing_time': {'$exists': True, '$gt': 0}}},
+                    {'$group': {
+                        '_id': None,
+                        'avg_time': {'$avg': '$processing_time'}
+                    }}
+                ]
+            }}
+        ]
         
-        uploaded = len(await self.db['documents'].find({
-            'created_at': {'$gte': start_date, '$lte': end_date}
-        }).to_list(None))
+        result = await self.db['documents'].aggregate(doc_pipeline).to_list(1)
         
-        processed = sum(1 for doc in documents if doc.get('processing_status') == 'completed')
+        if not result:
+            return DocumentAnalytics(
+                total_documents=0, documents_uploaded=0, documents_processed=0,
+                average_processing_time=0.0, documents_by_type={}, storage_used=0.0,
+                documents_by_user=0, total_downloads=0
+            )
         
-        # Document types
-        doc_types = {}
-        for doc in documents:
-            doc_type = doc.get('file_type', 'unknown')
-            doc_types[doc_type] = doc_types.get(doc_type, 0) + 1
+        data = result[0]
+        totals = data['totals'][0] if data['totals'] else {}
+        uploaded = data['uploaded_in_range'][0]['count'] if data['uploaded_in_range'] else 0
+        doc_types = {d['_id']: d['count'] for d in data.get('by_type', [])}
+        avg_processing = data['processing_time'][0]['avg_time'] if data['processing_time'] else 0.0
         
-        # Storage used
-        storage = sum(doc.get('file_size', 0) for doc in documents)
-        
-        # Processing time
-        processing_times = [d.get('processing_time', 0) for d in documents if d.get('processing_time')]
-        avg_processing = sum(processing_times) / len(processing_times) if processing_times else 0
-        
-        # Downloads
+        # Downloads count
         downloads = await self.db['document_access_logs'].count_documents({
             'timestamp': {'$gte': start_date, '$lte': end_date},
             'action': 'download'
         })
         
         return DocumentAnalytics(
-            total_documents=total_docs,
+            total_documents=totals.get('total', 0),
             documents_uploaded=uploaded,
-            documents_processed=processed,
+            documents_processed=totals.get('processed', 0),
             average_processing_time=avg_processing,
             documents_by_type=doc_types,
-            storage_used=storage,
-            documents_by_user=total_docs,
+            storage_used=float(totals.get('total_storage', 0)),
+            documents_by_user=totals.get('total', 0),
             total_downloads=downloads
         )
     
@@ -193,37 +268,74 @@ class AnalyticsService:
         self,
         time_range: TimeRange = TimeRange.LAST_7D
     ) -> SecurityAnalytics:
-        """Get security event statistics"""
+        """Get security event statistics using aggregation pipeline"""
         start_date, end_date = self._get_date_range(time_range)
+        date_filter = {'timestamp': {'$gte': start_date, '$lte': end_date}}
         
-        events = await self.db['security_events'].find({
-            'timestamp': {'$gte': start_date, '$lte': end_date}
-        }).to_list(None)
+        # Security events aggregation
+        sec_pipeline = [
+            {'$match': date_filter},
+            {'$facet': {
+                'totals': [
+                    {'$group': {
+                        '_id': None,
+                        'total': {'$sum': 1},
+                        'suspicious': {'$sum': {'$cond': [
+                            {'$in': ['$severity', ['critical', 'high']]}, 1, 0
+                        ]}}
+                    }}
+                ],
+                'by_severity': [
+                    {'$group': {
+                        '_id': {'$ifNull': ['$severity', 'low']},
+                        'count': {'$sum': 1}
+                    }}
+                ],
+                'top_vectors': [
+                    {'$group': {
+                        '_id': {'$ifNull': ['$event_type', 'unknown']},
+                        'count': {'$sum': 1}
+                    }},
+                    {'$sort': {'count': -1}},
+                    {'$limit': 5}
+                ]
+            }}
+        ]
         
-        total_events = len(events)
+        result = await self.db['security_events'].aggregate(sec_pipeline).to_list(1)
         
-        # Unauthorized access
-        unauthorized = len(await self.db['identity_logs'].find({
+        # Unauthorized access count from identity logs
+        unauthorized = await self.db['identity_logs'].count_documents({
             'event_type': 'unauthorized_access',
-            'timestamp': {'$gte': start_date, '$lte': end_date}
-        }).to_list(None))
+            **date_filter
+        })
         
-        # Suspicious activities
-        suspicious = sum(1 for e in events if e.get('severity') in ['critical', 'high'])
+        if not result or not result[0]['totals']:
+            return SecurityAnalytics(
+                total_security_events=0, unauthorized_access_attempts=unauthorized,
+                suspicious_activities=0,
+                events_by_severity={'critical': 0, 'high': 0, 'medium': 0, 'low': 0},
+                top_attack_vectors=[]
+            )
         
-        # Severity breakdown
+        data = result[0]
+        totals = data['totals'][0]
+        
+        # Build severity breakdown with defaults
         severity_breakdown = {'critical': 0, 'high': 0, 'medium': 0, 'low': 0}
-        for event in events:
-            severity = event.get('severity', 'low')
-            if severity in severity_breakdown:
-                severity_breakdown[severity] += 1
+        for item in data['by_severity']:
+            if item['_id'] in severity_breakdown:
+                severity_breakdown[item['_id']] = item['count']
+        
+        # Data-driven attack vectors
+        top_vectors = [v['_id'] for v in data.get('top_vectors', [])]
         
         return SecurityAnalytics(
-            total_security_events=total_events,
+            total_security_events=totals['total'],
             unauthorized_access_attempts=unauthorized,
-            suspicious_activities=suspicious,
+            suspicious_activities=totals['suspicious'],
             events_by_severity=severity_breakdown,
-            top_attack_vectors=["failed_login", "brute_force", "unauthorized_access"]
+            top_attack_vectors=top_vectors
         )
     
     async def generate_full_report(
@@ -294,39 +406,50 @@ class AnalyticsService:
         await self.metrics_collection.insert_one(metric_doc)
     
     async def detect_anomalies(self) -> List[AnomalyAlert]:
-        """Detect system anomalies"""
+        """Detect system anomalies using lightweight count queries"""
         alerts = []
+        start_24h = datetime.utcnow() - timedelta(hours=24)
+        date_filter = {'timestamp': {'$gte': start_24h}}
         
-        # Check for unusual login pattern
-        login_stats = await self.get_login_analytics(TimeRange.LAST_24H)
+        # Login anomaly via count queries (no full collection load)
+        total_logins = await self.db['identity_logs'].count_documents(date_filter)
+        failed_logins = await self.db['identity_logs'].count_documents({
+            **date_filter,
+            'login_success': False
+        })
+        successful_logins = total_logins - failed_logins
         
-        if login_stats.failed_logins > login_stats.successful_logins:
+        if total_logins > 0 and failed_logins > successful_logins:
             alert = AnomalyAlert(
-                alert_id='anomaly_001',
+                alert_id=f'anomaly_login_{datetime.utcnow().strftime("%Y%m%d%H")}',
                 alert_type='high_failure_rate',
                 severity='high',
                 message='Unusually high login failure rate detected',
                 detected_at=datetime.utcnow(),
                 metric_name='login_failure_rate',
-                metric_value=login_stats.failed_logins / max(login_stats.total_logins, 1),
+                metric_value=failed_logins / max(total_logins, 1),
                 threshold_value=0.3,
                 recommendations=['Review access policies', 'Check for brute force attacks']
             )
             alerts.append(alert)
         
-        # Check for unusual storage growth
-        storage_stats = await self.get_document_analytics(TimeRange.LAST_24H)
+        # Storage anomaly via aggregation (sum only, no full load)
+        storage_pipeline = [
+            {'$group': {'_id': None, 'total_storage': {'$sum': {'$ifNull': ['$file_size', 0]}}}}
+        ]
+        storage_result = await self.db['documents'].aggregate(storage_pipeline).to_list(1)
+        storage_used = storage_result[0]['total_storage'] if storage_result else 0
         
-        if storage_stats.storage_used > 10 * 1024 * 1024 * 1024:  # 10GB
+        if storage_used > 10 * 1024 * 1024 * 1024:  # 10GB
             alert = AnomalyAlert(
-                alert_id='anomaly_002',
+                alert_id=f'anomaly_storage_{datetime.utcnow().strftime("%Y%m%d%H")}',
                 alert_type='high_storage',
                 severity='medium',
                 message='Storage usage is high',
                 detected_at=datetime.utcnow(),
                 metric_name='storage_usage',
-                metric_value=storage_stats.storage_used,
-                threshold_value=10 * 1024 * 1024 * 1024,
+                metric_value=float(storage_used),
+                threshold_value=float(10 * 1024 * 1024 * 1024),
                 recommendations=['Archive old documents', 'Implement retention policy']
             )
             alerts.append(alert)

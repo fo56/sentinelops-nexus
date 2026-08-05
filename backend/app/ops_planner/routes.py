@@ -10,7 +10,7 @@ from fastapi.encoders import jsonable_encoder
 import logging
 
 from ..database.mongodb import get_database
-from ..utils.dependencies import get_current_user
+from ..utils.dependencies import get_current_user, get_current_admin
 from ..utils.auth import decode_access_token
 from .services import MissionService
 from .websocket import manager
@@ -36,7 +36,7 @@ router = APIRouter(prefix="/api/ops-planner", tags=["Ops Planner (Mission Board)
 @router.post("/missions", response_model=MissionResponse, status_code=status.HTTP_201_CREATED)
 async def create_mission(
     mission_data: MissionCreate,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_current_admin),
     db=Depends(get_database)
 ):
     """
@@ -52,12 +52,6 @@ async def create_mission(
     
     **Permissions**: Admin only
     """
-    if current_user["role"] != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only admins can create missions"
-        )
-    
     service = MissionService(db)
     mission = await service.create_mission(mission_data, current_user["email"])
     
@@ -134,7 +128,7 @@ async def get_mission(
 async def update_mission(
     mission_id: str,
     mission_update: MissionUpdate,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_current_admin),
     db=Depends(get_database)
 ):
     """
@@ -144,12 +138,6 @@ async def update_mission(
     
     **Permissions**: Admin only
     """
-    if current_user["role"] != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only admins can update missions"
-        )
-    
     service = MissionService(db)
     mission = await service.update_mission(mission_id, mission_update, current_user["email"])
     
@@ -166,7 +154,7 @@ async def update_mission(
 @router.delete("/missions/{mission_id}")
 async def delete_mission(
     mission_id: str,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_current_admin),
     db=Depends(get_database)
 ):
     """
@@ -176,12 +164,6 @@ async def delete_mission(
     
     **Permissions**: Admin only
     """
-    if current_user["role"] != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only admins can delete missions"
-        )
-    
     service = MissionService(db)
     result = await service.delete_mission(mission_id, current_user["email"])
     
@@ -203,7 +185,7 @@ async def delete_mission(
 async def assign_mission_to_agent(
     mission_id: str,
     assignment: MissionAssign,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_current_admin),
     db=Depends(get_database)
 ):
     """
@@ -221,12 +203,6 @@ async def assign_mission_to_agent(
     
     **Permissions**: Admin only
     """
-    if current_user["role"] != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only admins can assign missions"
-        )
-    
     service = MissionService(db)
     mission = await service.assign_mission_to_agent(mission_id, assignment, current_user["email"])
     
@@ -320,7 +296,7 @@ async def get_kanban_board(
 
 @router.get("/agents/available", response_model=List[AgentScoreInfo])
 async def get_available_agents(
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_current_admin),
     db=Depends(get_database)
 ):
     """
@@ -337,12 +313,6 @@ async def get_available_agents(
     
     **Permissions**: Admin only
     """
-    if current_user["role"] != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only admins can view available agents"
-        )
-    
     service = MissionService(db)
     agents = await service.get_available_agents()
     return agents
@@ -543,7 +513,7 @@ async def health_check():
 
 @router.get("/stats")
 async def get_stats(
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_current_admin),
     db=Depends(get_database)
 ):
     """
@@ -557,11 +527,6 @@ async def get_stats(
     
     **Permissions**: Admin only
     """
-    if current_user["role"] != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only admins can view statistics"
-        )
     
     missions_collection = db.missions
     users_collection = db.users
@@ -728,7 +693,7 @@ async def websocket_endpoint(
 
 @router.get("/ws/info")
 async def websocket_info(
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_admin)
 ):
     """
     **Get WebSocket connection information**
@@ -737,11 +702,6 @@ async def websocket_info(
     
     **Permissions**: Admin only
     """
-    if current_user["role"] != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only admins can view WebSocket info"
-        )
     
     return {
         "active_connections": manager.get_active_connections_count(),

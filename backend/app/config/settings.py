@@ -7,13 +7,13 @@ class Settings(BaseSettings):
     model_config = ConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
     
     # App Settings
-    APP_NAME: str = "SentinelOps Nexus API"
-    APP_VERSION: str = "1.0.0"
+    APP_NAME: str = "SentinelOps Nexus"
+    APP_VERSION: str = "1.1.0"
     DEBUG: bool = True
     
     # MongoDB Settings
     MONGODB_URL: str = "mongodb://127.0.0.1:27017"
-    MONGODB_DB_NAME: str = "sentinel_ops_nexus"
+    MONGODB_DB_NAME: str = "sentinelops_nexus"
     
     # AI Settings - Using Ollama
     AI_PROVIDER: str = "ollama"

@@ -31,7 +31,7 @@ Modern intelligence units lack a unified platform that combines secure mission p
 SentinelOps is built using a modern, scalable stack split across three distinct layers:
 
 1. **Client Layer (Frontend)**: A React Single Page Application (SPA) built with Vite, utilizing React Context for global state and React Router for role-based dashboard routing (Admin, Agent, Technician).
-2. **Gateway & Service Layer (Backend)**: A FastAPI application running on Python 3.11+. It handles JWT authentication, robust request validation, WebSocket broadcasting for real-time mission updates, and orchestrates business logic across domains (Identity, Ops Planner, Facility Ops).
+2. **Gateway & Service Layer (Backend)**: A FastAPI application running on Python 3.11+. It handles JWT authentication via a unified RBAC system (`app/utils/dependencies.py`), robust request validation, WebSocket broadcasting for real-time mission updates with automatic reconnection rehydration, and orchestrates business logic across domains (Identity, Ops Planner, Facility Ops).
 3. **Data & AI Layer**:
    - **MongoDB**: Primary document store for users, missions, and facility issues.
    - **ChromaDB**: In-memory vector database storing document chunk embeddings.
@@ -144,7 +144,8 @@ The backend provides extensive RESTful endpoints. A full interactive OpenAPI spe
 
 ### Knowledge Crystal (RAG)
 - `POST /kb/upload-document` - Process and embed a new document
-- `POST /kb/chat` - Natural language query against the vector store
+- `POST /kb/chat` - Streaming natural language query against the vector store (unified RAG + chat endpoint)
+- `GET /kb/search` - Semantic search with role-based filtering
 - `GET /kb/pages` - List stored knowledge pages
 - `DELETE /kb/page/{page_id}` - Wipe a document and its embeddings
 
@@ -152,21 +153,26 @@ The backend provides extensive RESTful endpoints. A full interactive OpenAPI spe
 - `POST /api/ops-planner/missions` - Create a new mission
 - `PATCH /api/ops-planner/missions/{id}/status` - Update Kanban state (broadcasts via WebSockets)
 - `GET /api/ops-planner/my-work` - Fetch missions assigned to the current user
+- `WS /api/ops-planner/ws` - Real-time WebSocket with mission room subscriptions (`join_mission`/`leave_mission`)
 
 ### Facility Ops
-- `POST /api/facility-ops/issues` - Report a facility issue
-- `POST /api/facility-ops/issues/{id}/outcome` - Submit work completion notes
+- `POST /facility-ops/issues` - Report a facility issue
+- `POST /facility-ops/issues/{id}/outcome` - Submit work completion notes
+
+### Analytics
+- `GET /api/analytics/report` - Comprehensive analytics report (uses MongoDB aggregation pipelines)
+- `GET /api/analytics/login` - Login statistics
+- `GET /api/analytics/anomalies` - Anomaly detection
 
 ## Limitations
 
 - **CPU Latency**: Embedding large documents or executing complex LLM queries relies entirely on local compute. Without a dedicated GPU, initial document ingestion and RAG answers may take 10-15 seconds.
 - **In-Memory Vectors**: The ChromaDB implementation persists to disk via SQLite (`./vector_db`), but modifying document chunking logic requires a complete teardown and re-indexing of the entire vector store.
-- **WebSocket Re-hydration**: If the WebSocket connection drops, clients must re-trigger a REST `GET` request upon reconnection to synchronize any Kanban state drift that occurred while disconnected.
 
 ## Contributing
 
 Questions, issues, and pull requests are welcome! Please open an issue on GitHub to discuss proposed changes before submitting a PR.
-Ensure that any new endpoints include appropriate RBAC checks in `app/utils/security.py`.
+Ensure that any new endpoints include appropriate RBAC guards via `Depends(get_current_admin)` or `Depends(require_role(...))` from `app/utils/dependencies.py`.
 
 ## License
 

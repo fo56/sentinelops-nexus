@@ -106,7 +106,7 @@ class UserService:
             "created_at": datetime.utcnow(),
             "last_login": None,
             "last_logout": None,
-            "permissions": await cls._get_permissions_for_role(role),
+
             # Score system for agents and technicians
             "score": 100,  # Default score for all rangers (agents)
             "technician_score": 100,  # Default score for technicians
@@ -186,40 +186,7 @@ class UserService:
             logger.error(f"Error updating last login: {e}")
             return False
     
-    @classmethod
-    async def _get_permissions_for_role(cls, role: str) -> Dict:
-        """Get permissions based on user role"""
-        permissions_map = {
-            UserRole.ADMIN.value: {
-                "create_users": True,
-                "view_all_data": True,
-                "view_missions": True,
-                "fix_issues": True,
-                "upload_evidence": True,
-                "manage_facilities": True,
-                "access_knowledge_base": True
-            },
-            UserRole.TECHNICIAN.value: {
-                "create_users": False,
-                "view_all_data": False,
-                "view_missions": True,
-                "fix_issues": True,
-                "upload_evidence": False,
-                "manage_facilities": False,
-                "access_knowledge_base": True
-            },
-            UserRole.AGENT.value: {
-                "create_users": False,
-                "view_all_data": False,
-                "view_missions": True,
-                "fix_issues": False,
-                "upload_evidence": True,
-                "manage_facilities": False,
-                "access_knowledge_base": True
-            }
-        }
-        
-        return permissions_map.get(role, {})
+
     
     @classmethod
     async def log_identity_event(
